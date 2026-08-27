@@ -11,18 +11,14 @@ import { readFileSync, readdirSync } from 'node:fs';
  * mort apparaît ailleurs — ou si l'un de ceux-ci est enfin branché — le
  * contrôle le signale.
  */
-const ALLOWED = [
-  {
-    file: 'src/app/features/auth/login-page.html',
-    count: 1,
-    reason: '« Mot de passe oublié » — écran de réinitialisation pas encore construit',
-  },
-  {
-    file: 'src/app/features/auth/signup-page.html',
-    count: 2,
-    reason: 'CGU et confidentialité — textes juridiques à rédiger, on ne les invente pas',
-  },
-];
+/**
+ * Écrans autorisés à porter un href="#", avec la raison.
+ *
+ * Vide, et c'est l'objectif : chaque lien de l'application vise une ancre
+ * réelle, une route ou une adresse. Une exception qui ne sert plus fait
+ * échouer ce contrôle, pour qu'elle ne survive pas à son motif.
+ */
+const ALLOWED = [];
 
 const files = [];
 (function walk(dir) {

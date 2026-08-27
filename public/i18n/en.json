@@ -154,12 +154,15 @@
       "features": "Features",
       "security": "Security",
       "contact": "Contact",
-      "faq": "FAQ"
+      "faq": "FAQ",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
     },
     "rights": "DONNA AI. Enterprise secure.",
     "contact": "Contact",
     "signIn": "Sign in",
-    "getStarted": "Get started"
+    "getStarted": "Get started",
+    "legal": "Legal"
   },
   "preview": {
     "question": "Find all contracts expiring in the next 60 days…",
@@ -216,6 +219,16 @@
       "termsRequired": "You need to accept this to continue.",
       "already": "Already using DONNA?",
       "signIn": "Sign in"
+    },
+    "reset": {
+      "title": "Let's get you back in.",
+      "subtitle": "Give us the address you sign in with. If it matches an account, a reset link is on its way.",
+      "submit": "Send the link",
+      "sending": "Sending…",
+      "sentTitle": "Check your inbox.",
+      "sentBody": "If {{email}} matches an account, the link is there. It expires in an hour.",
+      "back": "Back to sign in",
+      "resend": "Send it again"
     }
   },
   "workspace": {
@@ -534,5 +547,54 @@
       }
     },
     "revoke": "Revoke any connector instantly"
+  },
+  "legal": {
+    "pending": "Binding text in preparation",
+    "pendingBody": "Our counsel is drafting the definitive wording. Until it is published, what follows states the commitments DONNA already makes — the same ones set out on our public pages. They are not a substitute for the contract.",
+    "contact": "Questions before then: legal@donna.ai",
+    "terms": {
+      "title": "Terms of Service",
+      "intro": "What DONNA will and will not do with the workspace you connect.",
+      "sections": {
+        "scope": {
+          "title": "What she may reach",
+          "body": "Only the connectors you switch on, through scoped OAuth with least-privilege permissions. Revoking a connector removes her access immediately and irreversibly."
+        },
+        "consent": {
+          "title": "Nothing leaves without you",
+          "body": "DONNA drafts, proposes and schedules. Sending, sharing and updating always wait for an explicit approval from you. There is no setting that removes this step."
+        },
+        "audit": {
+          "title": "Everything is written down",
+          "body": "Every action taken on your behalf lands in an audit log you can read, export and hand to your compliance team."
+        },
+        "accuracy": {
+          "title": "She can be wrong",
+          "body": "Every answer names the documents behind it so you can check the source. When she is unsure she says so. You remain responsible for the decisions you take."
+        }
+      }
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "Where your content goes, and where it does not.",
+      "sections": {
+        "training": {
+          "title": "Your data trains nothing",
+          "body": "Your content answers your questions and nothing else. It is never used to train a model and never shared with other customers."
+        },
+        "storage": {
+          "title": "Storage",
+          "body": "Encrypted at rest and in transit. Indexed content lives in your workspace and is deleted with it."
+        },
+        "separation": {
+          "title": "Separation between clients",
+          "body": "Documents feed one general knowledge base for your company. What DONNA retains about a given client stays in that project's own memory and is not surfaced in another."
+        },
+        "deletion": {
+          "title": "Removal",
+          "body": "Disconnecting a connector removes its access. Deleting a project removes its memory. Deleting the workspace removes the index."
+        }
+      }
+    }
   }
 }

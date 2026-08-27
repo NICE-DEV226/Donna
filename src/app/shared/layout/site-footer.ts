@@ -45,5 +45,12 @@ export class SiteFooter {
         { key: 'footer.contact', href: 'mailto:hello@donna.ai' },
       ],
     },
+    {
+      heading: 'footer.legal',
+      links: [
+        { key: 'footer.links.terms', route: '/terms' },
+        { key: 'footer.links.privacy', route: '/privacy' },
+      ],
+    },
   ];
 }

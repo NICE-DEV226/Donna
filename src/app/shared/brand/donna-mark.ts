@@ -38,15 +38,20 @@ import { ChangeDetectionStrategy, Component, booleanAttribute, input } from '@an
         stroke-width="3.4"
         stroke-linecap="round"
         fill="none"
-        [attr.transform]="boxed() ? 'translate(2.4 1.4) scale(0.86)' : null"
+        [attr.transform]="boxed() ? 'translate(2.56 2.56) scale(0.84)' : null"
       >
+        <!--
+          Géométrie centrée dans la boîte de 32 : le glyphe occupe 6→26 sur les
+          deux axes. La version précédente débordait à droite (centre à 18,75)
+          et collait aux bords — visible dès qu'on la posait dans un rond.
+        -->
         <!-- Le fût : le seuil, son bureau devant la porte. -->
-        <path d="M10 5.5V26.5" />
+        <path d="M7.8 7.7V24.3" />
         <!-- L'arc : déjà là, en attente. -->
-        <path d="M15.8 5.5C24 5.5 27.5 10 27.5 16C27.5 22 24 26.5 15.8 26.5" />
+        <path d="M13.3 7.7C20.5 7.7 24.3 11.4 24.3 16C24.3 20.6 20.5 24.3 13.3 24.3" />
         <!-- Les liaisons : elles ne se tracent qu'une fois validé. -->
-        <path class="donna-mark__link" d="M10 5.5H15.8" />
-        <path class="donna-mark__link" d="M10 26.5H15.8" />
+        <path class="donna-mark__link" d="M7.8 7.7H13.3" />
+        <path class="donna-mark__link" d="M7.8 24.3H13.3" />
       </g>
     </svg>
   `,

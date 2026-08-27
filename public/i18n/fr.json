@@ -154,12 +154,15 @@
       "features": "Fonctionnalités",
       "security": "Sécurité",
       "contact": "Contact",
-      "faq": "FAQ"
+      "faq": "FAQ",
+      "terms": "Conditions d'utilisation",
+      "privacy": "Confidentialité"
     },
     "rights": "DONNA AI. Sécurité entreprise.",
     "contact": "Contact",
     "signIn": "Connexion",
-    "getStarted": "Commencer"
+    "getStarted": "Commencer",
+    "legal": "Légal"
   },
   "preview": {
     "question": "Trouve tous les contrats qui expirent dans les 60 jours…",
@@ -216,6 +219,16 @@
       "termsRequired": "Vous devez accepter pour continuer.",
       "already": "Déjà chez DONNA ?",
       "signIn": "Se connecter"
+    },
+    "reset": {
+      "title": "On vous remet en selle.",
+      "subtitle": "Indiquez l'adresse avec laquelle vous vous connectez. Si elle correspond à un compte, un lien de réinitialisation part aussitôt.",
+      "submit": "Envoyer le lien",
+      "sending": "Envoi…",
+      "sentTitle": "Regardez votre boîte mail.",
+      "sentBody": "Si {{email}} correspond à un compte, le lien s'y trouve. Il expire dans une heure.",
+      "back": "Retour à la connexion",
+      "resend": "Renvoyer"
     }
   },
   "workspace": {
@@ -534,5 +547,54 @@
       }
     },
     "revoke": "Révoquez un connecteur à tout moment"
+  },
+  "legal": {
+    "pending": "Texte contractuel en cours de rédaction",
+    "pendingBody": "Notre conseil rédige la version définitive. En attendant sa publication, ce qui suit énonce les engagements que DONNA prend déjà — les mêmes que ceux affichés sur nos pages publiques. Ils ne se substituent pas au contrat.",
+    "contact": "Une question d'ici là : legal@donna.ai",
+    "terms": {
+      "title": "Conditions d'utilisation",
+      "intro": "Ce que DONNA fera, et ne fera pas, de l'espace que vous lui connectez.",
+      "sections": {
+        "scope": {
+          "title": "Ce à quoi elle accède",
+          "body": "Uniquement les connecteurs que vous activez, via un OAuth restreint au strict nécessaire. Révoquer un connecteur lui en retire l'accès immédiatement et définitivement."
+        },
+        "consent": {
+          "title": "Rien ne part sans vous",
+          "body": "DONNA rédige, propose et planifie. Envoyer, partager et mettre à jour attendent toujours votre validation explicite. Aucun réglage ne permet de supprimer cette étape."
+        },
+        "audit": {
+          "title": "Tout est consigné",
+          "body": "Chaque action menée en votre nom atterrit dans un journal que vous pouvez lire, exporter et remettre à votre équipe conformité."
+        },
+        "accuracy": {
+          "title": "Elle peut se tromper",
+          "body": "Chaque réponse nomme les documents qui la fondent, pour que vous puissiez vérifier. Quand elle n'est pas sûre, elle le dit. Les décisions restent les vôtres."
+        }
+      }
+    },
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "intro": "Où vont vos contenus, et où ils ne vont pas.",
+      "sections": {
+        "training": {
+          "title": "Vos données n'entraînent rien",
+          "body": "Vos contenus servent à répondre à vos questions, et à rien d'autre. Ils n'entraînent jamais de modèle et ne sont jamais partagés avec d'autres clients."
+        },
+        "storage": {
+          "title": "Conservation",
+          "body": "Chiffré au repos et en transit. Les contenus indexés résident dans votre espace et sont supprimés avec lui."
+        },
+        "separation": {
+          "title": "Séparation entre clients",
+          "body": "Les documents alimentent une base de connaissances générale, propre à votre entreprise. Ce que DONNA retient d'un client donné reste dans la mémoire de ce dossier et n'apparaît pas dans un autre."
+        },
+        "deletion": {
+          "title": "Suppression",
+          "body": "Débrancher un connecteur en retire l'accès. Supprimer un dossier efface sa mémoire. Supprimer l'espace efface l'index."
+        }
+      }
+    }
   }
 }

@@ -1,0 +1,38 @@
+<div *transloco="let t" class="flex min-h-screen flex-col">
+  <site-header />
+
+  <main class="grow">
+    <article class="mx-auto max-w-measure px-lg py-xxl">
+      <h1 class="text-mobile-headline text-ink sm:text-headline-lg">{{ t(base() + '.title') }}</h1>
+      <p class="mt-md text-body-lg text-ink-muted">{{ t(base() + '.intro') }}</p>
+
+      <!-- Le statut du texte est annoncé avant qu'on le donne à lire. -->
+      <aside class="mt-xl rounded-xl border border-line bg-surface-sunken p-lg">
+        <p class="flex items-center gap-sm text-label-caps uppercase text-primary">
+          <ui-icon name="clock" [size]="14" />
+          {{ t('legal.pending') }}
+        </p>
+        <p class="mt-sm text-body-sm leading-relaxed text-ink-muted">{{ t('legal.pendingBody') }}</p>
+      </aside>
+
+      <div class="mt-xl flex flex-col gap-xl">
+        @for (section of sections(); track section) {
+          <section>
+            <h2 class="text-headline-md text-ink">
+              {{ t(base() + '.sections.' + section + '.title') }}
+            </h2>
+            <p class="mt-sm text-body-md leading-relaxed text-ink-muted">
+              {{ t(base() + '.sections.' + section + '.body') }}
+            </p>
+          </section>
+        }
+      </div>
+
+      <p class="mt-xxl border-t border-line pt-lg text-body-sm text-ink-subtle">
+        {{ t('legal.contact') }}
+      </p>
+    </article>
+  </main>
+
+  <site-footer />
+</div>

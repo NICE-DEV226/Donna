@@ -39,5 +39,22 @@ export const routes: Routes = [
       },
     ],
   },
+  {
+    path: 'forgot-password',
+    title: 'Reset your password — DONNA',
+    loadComponent: () => import('./features/auth/reset-page').then((m) => m.ResetPage),
+  },
+  {
+    path: 'terms',
+    title: 'Terms of Service — DONNA',
+    data: { doc: 'terms' },
+    loadComponent: () => import('./features/legal/legal-page').then((m) => m.LegalPage),
+  },
+  {
+    path: 'privacy',
+    title: 'Privacy Policy — DONNA',
+    data: { doc: 'privacy' },
+    loadComponent: () => import('./features/legal/legal-page').then((m) => m.LegalPage),
+  },
   { path: '**', redirectTo: '' },
 ];

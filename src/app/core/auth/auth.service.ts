@@ -32,6 +32,22 @@ export class AuthService {
     return this.complete(payload.email);
   }
 
+  /**
+   * Demande un lien de réinitialisation.
+   *
+   * Ne dit JAMAIS si l'adresse correspond à un compte : répondre « inconnue »
+   * permettrait d'énumérer les utilisateurs. Le message de confirmation est
+   * volontairement le même dans les deux cas.
+   */
+  async requestReset(_email: string): Promise<void> {
+    this.pending.set(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    } finally {
+      this.pending.set(false);
+    }
+  }
+
   signInWithGoogle(): Promise<boolean> {
     return this.complete('google');
   }
