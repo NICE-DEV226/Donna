@@ -1,0 +1,88 @@
+<div
+  *transloco="let t"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/30 p-lg backdrop-blur-sm"
+  (click)="closed.emit()"
+>
+  <!-- Le clic sur le voile ferme ; le clic dans la carte ne doit pas remonter. -->
+  <section
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="t('workspace.projects.new')"
+    class="popover w-full max-w-form rounded-xl border border-line bg-surface p-xl shadow-floating"
+    (click)="$event.stopPropagation()"
+    (keydown)="onKeydown($event)"
+  >
+    <h2 class="text-headline-md text-ink">{{ t('workspace.projects.new') }}</h2>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="mt-lg flex flex-col gap-md">
+      <ui-field
+        [label]="t('workspace.projects.nameLabel')"
+        controlId="project-name"
+        [control]="form.controls.name"
+        [messages]="{ required: t('workspace.projects.nameRequired') }"
+      >
+        <input
+          uiInput
+          id="project-name"
+          type="text"
+          formControlName="name"
+          [placeholder]="t('workspace.projects.namePlaceholder')"
+          aria-describedby="project-name-description"
+        />
+      </ui-field>
+
+      <ui-field
+        [label]="t('workspace.projects.clientLabel')"
+        controlId="project-client"
+        [control]="form.controls.client"
+      >
+        <input
+          uiInput
+          id="project-client"
+          type="text"
+          formControlName="client"
+          [placeholder]="t('workspace.projects.clientPlaceholder')"
+          aria-describedby="project-client-description"
+        />
+      </ui-field>
+
+      <label
+        class="mt-sm flex cursor-pointer flex-col items-center rounded-lg border border-dashed px-lg py-lg text-center transition-colors"
+        [class.border-line]="!dragging()"
+        [class.border-primary]="dragging()"
+        [class.bg-primary-soft]="dragging()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="dragging.set(false)"
+        (drop)="onDrop($event)"
+      >
+        <ui-icon name="paperclip" [size]="20" class="text-ink-muted" />
+        <span class="mt-sm text-body-sm font-semibold text-ink">
+          {{ t('workspace.projects.addDocuments') }}
+        </span>
+        <span class="mt-xs text-body-sm text-ink-muted">{{ t('workspace.projects.addHint') }}</span>
+        <input type="file" multiple class="sr-only" (change)="onFiles($event)" />
+      </label>
+
+      @if (documents() > 0) {
+        <p class="inline-flex items-center gap-sm text-body-sm text-success">
+          <ui-icon name="circle-check" [size]="16" />
+          {{ t('workspace.projects.ready', { count: documents() }) }}
+        </p>
+      }
+
+      <!-- Le modèle est dit franchement : un projet classe, il ne cloisonne pas. -->
+      <p class="rounded-lg bg-surface-sunken p-md text-body-sm text-ink-muted">
+        {{ t('workspace.projects.sharedNote') }}
+      </p>
+
+      <div class="mt-sm flex flex-wrap gap-sm">
+        <button type="submit" uiButton>{{ t('workspace.projects.create') }}</button>
+        <button type="button" uiButton="ghost" (click)="closed.emit()">
+          {{ t('workspace.projects.cancel') }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

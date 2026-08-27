@@ -1,0 +1,32 @@
+<!--
+  <details>/<summary> natifs plutôt qu'un accordéon maison : clavier, lecteurs
+  d'écran et recherche dans la page fonctionnent sans une ligne de JavaScript.
+-->
+<section *transloco="let t" id="faq" class="scroll-mt-20 border-t border-line bg-surface-sunken py-xxl">
+  <div class="mx-auto grid max-w-page gap-xl px-lg lg:grid-cols-[1fr_2fr] lg:gap-xxl">
+    <div uiReveal>
+      <p class="mb-md text-label-caps text-primary">{{ t('faq.eyebrow') }}</p>
+      <h2 class="text-mobile-headline text-ink sm:text-headline-lg">{{ t('faq.title') }}</h2>
+    </div>
+
+    <ul [uiReveal]="120" class="flex flex-col">
+      @for (item of items; track item.question) {
+        <li class="border-b border-line first:border-t">
+          <details class="group">
+            <summary
+              class="flex cursor-pointer items-center justify-between gap-md py-lg text-body-lg text-ink transition-colors hover:text-primary"
+            >
+              {{ t(item.question) }}
+              <ui-icon
+                name="chevron-right"
+                [size]="20"
+                class="shrink-0 text-ink-subtle transition-transform duration-200 group-open:rotate-90"
+              />
+            </summary>
+            <p class="max-w-measure pb-lg text-body-md text-ink-muted">{{ t(item.answer) }}</p>
+          </details>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,54 @@
+@if (store.isIndexing()) {
+  <section
+    *transloco="let t"
+    aria-busy="true"
+    [attr.aria-label]="t('workspace.setup.indexing.title')"
+    class="popover rounded-xl border border-line bg-surface p-lg shadow-floating"
+  >
+      <header class="mb-lg flex items-center justify-between gap-md">
+        <h2 class="text-body-md font-semibold text-ink">{{ t('workspace.setup.indexing.title') }}</h2>
+        <span class="size-2 shrink-0 animate-pulse rounded-full bg-success" aria-hidden="true"></span>
+      </header>
+
+      <!-- Le filet vertical relie les pastilles : il court derrière elles. -->
+      <ol
+        class="relative flex flex-col gap-lg before:absolute before:inset-y-3 before:left-[11px] before:w-px before:bg-line"
+      >
+        @for (step of steps; track step) {
+          @let state = store.stepState(step);
+          <li class="relative flex gap-md">
+            <span
+              class="z-10 flex size-6 shrink-0 items-center justify-center rounded-full border bg-surface"
+              [class.border-line]="state !== 'active'"
+              [class.border-primary]="state === 'active'"
+              [class.border-2]="state === 'active'"
+            >
+              @if (state === 'done') {
+                <ui-icon name="check" [size]="12" class="text-success" />
+              } @else if (state === 'active') {
+                <span class="size-2 animate-ping rounded-full bg-primary" aria-hidden="true"></span>
+              } @else {
+                <span class="size-1.5 rounded-full bg-line-strong" aria-hidden="true"></span>
+              }
+            </span>
+
+            <div>
+              <p
+                class="text-body-sm"
+                [class.text-ink]="state === 'active'"
+                [class.font-semibold]="state === 'active'"
+                [class.text-ink-muted]="state !== 'active'"
+              >
+                {{ t('workspace.setup.indexing.' + step) }}
+              </p>
+              @if (state !== 'pending' && store.processedCount() > 0) {
+                <p class="mt-xs text-label-caps uppercase text-ink-subtle">
+                  {{ t('workspace.setup.indexing.progress', { count: store.processedCount() }) }}
+                </p>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+  </section>
+}

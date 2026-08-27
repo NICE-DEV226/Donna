@@ -1,0 +1,16 @@
+<!-- Bloc inversé : la visuel passe à gauche pour casser le rythme de la page. -->
+<section *transloco="let t" class="border-y border-line bg-surface-sunken py-xxl">
+  <div class="mx-auto grid max-w-page items-center gap-xl px-lg lg:grid-cols-2 lg:gap-xxl">
+    <div [uiReveal]="120" class="lg:order-last">
+      <p class="mb-md text-label-caps text-primary">{{ t('approve.eyebrow') }}</p>
+      <h2 class="text-mobile-headline text-ink sm:text-headline-lg lg:text-display">
+        {{ t('approve.title') }}
+      </h2>
+      <p class="mt-lg max-w-measure text-body-lg text-ink-muted">{{ t('approve.body') }}</p>
+    </div>
+
+    <div uiReveal>
+      <approval-card />
+    </div>
+  </div>
+</section>

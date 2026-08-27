@@ -1,0 +1,41 @@
+<!--
+  La section que ce produit ne pouvait pas ne pas avoir : une assistante qui lit
+  les contrats d'une entreprise doit répondre de ses accès avant tout le reste.
+-->
+<section *transloco="let t" id="security" class="scroll-mt-20 border-t border-line bg-surface-sunken py-xxl">
+  <div class="mx-auto grid max-w-page items-center gap-xl px-lg lg:grid-cols-2 lg:gap-xxl">
+    <div uiReveal>
+      <p class="mb-md text-label-caps text-primary">{{ t('security.eyebrow') }}</p>
+      <h2 class="text-mobile-headline text-ink sm:text-headline-lg lg:text-display">
+        {{ t('security.title') }}
+      </h2>
+      <p class="mt-lg max-w-measure text-body-lg text-ink-muted">{{ t('security.body') }}</p>
+
+      <ul class="mt-xl flex flex-col">
+        @for (item of items; track item.title; let last = $last) {
+          <li
+            class="flex items-start gap-md py-md"
+            [class.border-b]="!last"
+            [class.border-line]="!last"
+          >
+            <ui-icon [name]="item.icon" [size]="20" class="mt-[2px] shrink-0 text-success" />
+            <div>
+              <p class="text-body-md font-semibold text-ink">{{ t(item.title) }}</p>
+              <p class="mt-xs text-body-sm text-ink-muted">{{ t(item.body) }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+
+      <p class="mt-lg inline-flex items-center gap-sm text-body-sm text-ink-subtle">
+        <ui-icon name="plug" [size]="16" />
+        {{ t('security.revoke') }}
+      </p>
+    </div>
+
+    <div [uiReveal]="120" class="rounded-xl border border-line bg-surface p-xl">
+      <!-- Le journal d'audit, montré plutôt que promis. -->
+      <spot-audit />
+    </div>
+  </div>
+</section>

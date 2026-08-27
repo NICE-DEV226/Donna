@@ -1,0 +1,41 @@
+<header
+  *transloco="let t"
+  class="sticky top-0 z-50 border-b border-line bg-canvas/85 backdrop-blur-md"
+>
+  <div class="mx-auto flex h-20 max-w-page items-center justify-between gap-sm px-lg sm:gap-md">
+    <a
+      routerLink="/"
+      class="donna-lockup inline-flex items-center gap-sm text-headline-md font-bold tracking-tight text-primary"
+      aria-label="DONNA"
+    >
+      <donna-mark [size]="26" />
+      DONNA
+    </a>
+
+    <nav class="hidden items-center gap-lg lg:flex" aria-label="Sections">
+      @for (link of navLinks; track link.fragment) {
+        <a
+          routerLink="/"
+          [fragment]="link.fragment"
+          class="text-body-sm text-ink-muted transition-colors duration-200 hover:text-primary"
+        >
+          {{ t(link.key) }}
+        </a>
+      }
+    </nav>
+
+    <div class="flex items-center gap-sm sm:gap-md">
+      <language-switch />
+      <!--
+        La visibilité est portée par un conteneur, jamais par une classe `display`
+        posée sur le bouton lui-même : `uiButton` impose déjà `inline-flex` via son
+        host binding, et Tailwind tranche selon SON ordre de génération, pas selon
+        l'ordre des classes. Un `hidden` posé ici serait ignoré.
+      -->
+      <span class="hidden sm:contents">
+        <a routerLink="/login" uiButton="ghost" size="sm">{{ t('nav.signIn') }}</a>
+      </span>
+      <a routerLink="/signup" uiButton size="sm">{{ t('nav.getStarted') }}</a>
+    </div>
+  </div>
+</header>

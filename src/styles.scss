@@ -1,0 +1,561 @@
+@use "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   DONNAT — design tokens
+   Traduits 1:1 du design system Stitch « Donna » (assets/aafd05c8b0f34a65ad71581af5f6f45d)
+   Identité « Safe » : clarté extrême, élégance sobre, fiabilité enterprise.
+   Pas d'ombres lourdes — on travaille en couches tonales + ghost borders.
+--------------------------------------------------------------------------- */
+@theme {
+  /* — Couleurs : surfaces ------------------------------------------------- */
+  --color-canvas: #fdfcfb;          /* Depth 0 — fond applicatif, off-white chaud */
+  --color-surface: #ffffff;         /* Depth 1 — cartes, panneaux, inputs */
+  --color-surface-sunken: #f4f3f2;  /* zones en creux (rails, champs inactifs) */
+  --color-surface-raised: #eeeeed;  /* hover sur surface, segments actifs */
+  --color-surface-inverse: #2f3130; /* tooltips, bandeaux sombres */
+
+  /* — Couleurs : texte ---------------------------------------------------- */
+  --color-ink: #1a1a1a;             /* charcoal — titres & corps */
+  --color-ink-muted: #666666;       /* métadonnées, secondaire */
+  --color-ink-subtle: #8c7071;      /* placeholders, texte désactivé */
+  --color-ink-inverse: #f1f0f0;     /* texte sur surface-inverse */
+
+  /* — Couleurs : traits (ghost borders) ----------------------------------- */
+  --color-line: #e5e5e5;            /* 1px par défaut, tous les Depth 1 */
+  --color-line-strong: #dadad9;     /* séparateurs structurels */
+
+  /* — Couleurs : accent burgundy (usage parcimonieux) --------------------- */
+  --color-primary: #800020;         /* CTA, états actifs */
+  --color-primary-strong: #570013;  /* hover / pressed */
+  --color-primary-soft: #ffdada;    /* fonds teintés */
+  --color-on-primary: #ffffff;
+
+  /* — Couleurs : succès / connexions -------------------------------------- */
+  --color-success: #2d5a43;         /* emerald sourd */
+  --color-success-soft: #bceecf;
+  --color-on-success: #ffffff;
+
+  /* — Couleurs : erreur ---------------------------------------------------- */
+  --color-danger: #ba1a1a;
+  --color-danger-soft: #ffdad6;
+  --color-on-danger: #ffffff;
+
+  /* — Typographie : Inter partout ----------------------------------------- */
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --text-display: 48px;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 1.2;
+  --text-headline-lg--letter-spacing: -0.02em;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 1.3;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 500;
+
+  --text-body-lg: 18px;             /* réponses longues de l'IA — lh généreuse */
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--letter-spacing: 0;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 16px;
+  --text-body-md--line-height: 1.5;
+  --text-body-md--letter-spacing: 0;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 1.5;
+  --text-body-sm--letter-spacing: 0.01em;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-caps: 12px;          /* chips, tags, labels — tracking ouvert */
+  --text-label-caps--line-height: 1;
+  --text-label-caps--letter-spacing: 0.05em;
+  --text-label-caps--font-weight: 600;
+
+  --text-mobile-headline: 28px;
+  --text-mobile-headline--line-height: 1.2;
+  --text-mobile-headline--font-weight: 600;
+
+  /* Extension landing : un cran au-dessus du `display` du design system, réservé
+     au titre du hero. Le reste de l'échelle est inchangé. */
+  --text-display-lg: 64px;
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.03em;
+  --text-display-lg--font-weight: 600;
+
+  /* — Rayons : « Rounded 2 » ---------------------------------------------- */
+  --radius: 0.5rem;                 /* 8px — conteneurs structurels */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;                /* 16px — cartes, boutons */
+  --radius-xl: 1.5rem;
+
+  /* — Espacement : base 8px ------------------------------------------------ */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;               /* = gouttière du grid 12 colonnes */
+  --spacing-xl: 48px;
+  --spacing-xxl: 80px;              /* respiration entre sections */
+
+  /* — Conteneurs -----------------------------------------------------------
+     ⚠️ PIÈGE : l'échelle `--spacing-*` ci-dessus MASQUE l'échelle de conteneurs
+     de Tailwind. Une largeur max nommée d'après un palier d'espacement (xs, sm,
+     md, lg, xl) résout vers var(--spacing-…) — donc 16px ou 24px au lieu de
+     28rem ou 32rem. N'utilisez JAMAIS ces noms-là pour une largeur.
+     Utilisez les tokens sémantiques ci-dessous — `npm run lint:classes` le vérifie. */
+  --container-page: 1200px; /* largeur de contenu maximale */
+  --container-measure: 34rem; /* ~57 caractères à 18px : mesure de lecture */
+  --container-form: 28rem; /* colonne de formulaire */
+  --container-aside: 32rem; /* colonne éditoriale */
+  --container-hero: 46rem; /* carte centrale du hero */
+  --container-spot: 14rem; /* illustration dans une tuile */
+  --container-toast: 24rem; /* notification */
+
+  /* — Élévation : Depth 2 uniquement --------------------------------------- */
+  --shadow-floating: 0 4px 20px rgb(0 0 0 / 0.04);
+}
+
+/* Base ------------------------------------------------------------------- */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Les ancres de la page glissent au lieu de sauter — sauf refus système. */
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* La sélection reprend l'accent de marque plutôt que le bleu du navigateur. */
+  ::selection {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary-strong);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-md);
+    line-height: 1.5;
+  }
+
+  /* Anneau de focus : 2px burgundy avec offset — cf. design system */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Fond texturé du hero : trame de points burgundy très diluée, estompée vers
+   le centre pour ne jamais concurrencer le texte. Aucune image, aucun asset. */
+@layer components {
+  .dot-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-primary) 22%, transparent) 1px,
+      transparent 0
+    );
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 45%, transparent 20%, #000 95%);
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 45%, transparent 20%, #000 95%);
+  }
+}
+
+/* FAQ : on retire le triangle natif de <summary>, on garde tout le reste. */
+@layer base {
+  summary {
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* Conversation -----------------------------------------------------------
+   Trois mouvements distincts, chacun pour un moment précis du fil :
+   la réflexion, l'attente d'un contenu, et l'arrivée de la réponse. */
+@layer components {
+  /* 1. DONNA réfléchit : trois points qui respirent en décalé. */
+  .thinking-dot {
+    animation: thinking 1400ms ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 180ms);
+  }
+
+  @keyframes thinking {
+    0%,
+    60%,
+    100% {
+      opacity: 0.25;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+
+  /* 2. Le contenu se prépare : un reflet balaie les lignes fantômes. */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-raised) 0%,
+      var(--color-surface-sunken) 40%,
+      var(--color-surface-raised) 80%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1600ms linear infinite;
+  }
+
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* 3. La réponse arrive : elle monte et se pose. */
+  .message-in {
+    animation: message-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes message-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .thinking-dot,
+    .shimmer,
+    .message-in {
+      animation: none;
+    }
+
+    .shimmer {
+      background: var(--color-surface-raised);
+    }
+  }
+}
+
+/* Pile de notifications ---------------------------------------------------
+   Le décalage passe par des classes nommées : un utilitaire Tailwind à valeur
+   arbitraire (crochets) dans un `[class.…]` Angular n'est pas appliqué — la
+   pile se retrouvait alors sans `right` du tout, collée à gauche. */
+@layer components {
+  .toast-stack {
+    right: var(--spacing-lg);
+  }
+
+  /* Un panneau occupe le bord droit : on se range à côté, pas dessus. */
+  @media (min-width: 40rem) {
+    .toast-stack--shifted {
+      right: calc(var(--container-aside) + var(--spacing-lg));
+    }
+  }
+}
+
+/* Interjection : DONNA entre d'elle-même ---------------------------------
+   Elle vient de la gauche, comme quelqu'un qui pousse la porte — et non du
+   bas, comme un message qu'on attendait. */
+@layer components {
+  .interjection-in {
+    animation: interjection-in 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes interjection-in {
+    from {
+      opacity: 0;
+      transform: translateX(-14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .interjection-in {
+      animation: none;
+    }
+  }
+}
+
+/* Sources consultées et notifications ------------------------------------ */
+@layer components {
+  /* Le passage retenu dans un extrait : teinté ET souligné, pour ne pas
+     dépendre de la seule couleur. */
+  .excerpt-match {
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--color-primary);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  /* Chaque source apparaît en glissant : on voit la recherche progresser. */
+  .trace-in {
+    animation: trace-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes trace-in {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Notification : elle entre par la droite, sans jamais couvrir la saisie. */
+  .toast-in {
+    animation: toast-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trace-in,
+    .toast-in {
+      animation: none;
+    }
+  }
+}
+
+/* Panneaux surgissants ---------------------------------------------------
+   Le rail et le statut de l'agent se déploient du haut vers le bas : l'origine
+   de transformation est en haut, donc le panneau se « déroule » au lieu de
+   grandir depuis son centre. */
+@layer components {
+  .flyout {
+    transform-origin: top;
+    animation: flyout-open 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes flyout-open {
+    from {
+      opacity: 0;
+      transform: scaleY(0.85) translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .popover {
+    animation: popover-open 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes popover-open {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flyout,
+    .popover {
+      animation: none;
+    }
+  }
+}
+
+/* Marque DONNA -----------------------------------------------------------
+   Les liaisons du D restent invisibles au repos : le D est ouvert, en attente.
+   Elles se tracent quand la marque passe à l'état validé — ou au survol du
+   lock-up, pour que le geste soit découvrable. */
+@layer components {
+  .donna-mark__link {
+    stroke-dasharray: 6.2;
+    stroke-dashoffset: 6.2;
+    transition: stroke-dashoffset 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .donna-mark--closed .donna-mark__link,
+  .donna-lockup:hover .donna-mark__link,
+  .donna-lockup:focus-visible .donna-mark__link {
+    stroke-dashoffset: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .donna-mark__link {
+      transition: none;
+    }
+  }
+}
+
+/* Illustrations maison ---------------------------------------------------
+   Fragments d'interface au trait, dessinés en SVG et colorés par les tokens.
+   Aucun asset, aucune dépendance : elles suivent le thème et restent nettes
+   à tout zoom. Les animations ne jouent qu'une fois, à l'entrée à l'écran. */
+@layer components {
+  .spot {
+    display: block;
+  }
+
+  .spot svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* — Traits et aplats : tout passe par la palette DONNA — */
+  .spot-line,
+  .spot-ink,
+  .spot-accent,
+  .spot-ok {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .spot-line { stroke: var(--color-line-strong); }
+  .spot-ink { stroke: var(--color-ink-subtle); }
+  .spot-accent { stroke: var(--color-primary); }
+  .spot-ok { stroke: var(--color-success); }
+
+  .spot-fill { fill: var(--color-surface); }
+  .spot-bar { fill: var(--color-line-strong); }
+  .spot-bar-ink { fill: var(--color-ink-subtle); }
+  .spot-bar-accent { fill: var(--color-primary); }
+  .spot-tint { fill: color-mix(in srgb, var(--color-primary) 10%, transparent); }
+  .spot-tint-ok { fill: color-mix(in srgb, var(--color-success) 14%, transparent); }
+
+  /* — Animations : état de repos, puis jeu unique sous `.in-view` — */
+  .spot-rise { opacity: 0; transform: translateY(6px); }
+  .spot-pop { opacity: 0; transform: scale(0.6); transform-origin: center; }
+  .spot-grow { transform: scaleX(0); transform-origin: left center; }
+  .spot-sweep { opacity: 0; }
+  .spot-draw { stroke-dasharray: 120; stroke-dashoffset: 120; }
+
+  .spot.in-view .spot-rise {
+    animation: spot-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 130ms);
+  }
+
+  .spot.in-view .spot-pop {
+    animation: spot-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation-delay: calc(260ms + var(--i, 0) * 150ms);
+  }
+
+  .spot.in-view .spot-grow {
+    animation: spot-grow 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 130ms);
+  }
+
+  .spot.in-view .spot-sweep {
+    animation: spot-sweep 1400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation-delay: 200ms;
+  }
+
+  .spot.in-view .spot-draw {
+    animation: spot-draw 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(300ms + var(--i, 0) * 160ms);
+  }
+
+  @keyframes spot-rise {
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes spot-pop {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes spot-grow {
+    to { transform: scaleX(1); }
+  }
+
+  @keyframes spot-sweep {
+    0% { opacity: 0; transform: translateX(-34px); }
+    18% { opacity: 1; }
+    82% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(34px); }
+  }
+
+  @keyframes spot-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Le réglage système prime : on affiche l'état final, sans mouvement. */
+  @media (prefers-reduced-motion: reduce) {
+    .spot-rise,
+    .spot-pop,
+    .spot-grow,
+    .spot-sweep,
+    .spot-draw,
+    .spot.in-view .spot-rise,
+    .spot.in-view .spot-pop,
+    .spot.in-view .spot-grow,
+    .spot.in-view .spot-sweep,
+    .spot.in-view .spot-draw {
+      opacity: 1;
+      transform: none;
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+  }
+}
+
+/* Reveal au scroll (directive UiReveal) ---------------------------------- */
+@layer components {
+  .ui-reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ui-reveal--visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Respecte le réglage système : pas de mouvement imposé. */
+  @media (prefers-reduced-motion: reduce) {
+    .ui-reveal,
+    .ui-reveal--visible {
+      opacity: 1;
+      transform: none;
+      transition: none;
+      transition-delay: 0ms !important;
+    }
+  }
+}

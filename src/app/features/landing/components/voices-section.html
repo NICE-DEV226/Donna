@@ -1,0 +1,26 @@
+<section *transloco="let t" id="voices" class="scroll-mt-20 py-xxl">
+  <div class="mx-auto max-w-page px-lg">
+    <div uiReveal class="max-w-measure">
+      <p class="mb-md text-label-caps text-primary">{{ t('voices.eyebrow') }}</p>
+      <h2 class="text-mobile-headline text-ink sm:text-headline-lg">{{ t('voices.title') }}</h2>
+    </div>
+
+    <ul class="mt-xl grid gap-lg md:grid-cols-2 lg:grid-cols-4">
+      @for (quote of quotes; track quote.name; let i = $index) {
+        <li [uiReveal]="i * 80" class="flex flex-col rounded-xl border border-line bg-surface p-lg">
+          <blockquote class="grow text-body-sm leading-relaxed text-ink">
+            « {{ t(quote.body) }} »
+          </blockquote>
+
+          <footer class="mt-lg flex items-center gap-md border-t border-line pt-md">
+            <ui-avatar [name]="t(quote.name)" />
+            <div>
+              <p class="text-body-sm font-semibold text-ink">{{ t(quote.name) }}</p>
+              <p class="text-body-sm text-ink-muted">{{ t(quote.role) }}</p>
+            </div>
+          </footer>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

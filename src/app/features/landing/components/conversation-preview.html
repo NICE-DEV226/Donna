@@ -1,0 +1,49 @@
+<!-- Depth 2 : la seule ombre autorisée, très diffuse. -->
+<div
+  *transloco="let t"
+  class="relative z-10 rounded-xl border border-line bg-surface p-lg shadow-floating"
+>
+  <!-- Question : bloc contenu -->
+  <div class="mb-lg flex gap-md">
+    <span
+      class="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-raised text-ink-muted"
+    >
+      <ui-icon name="user" [size]="16" />
+    </span>
+    <p class="rounded-lg rounded-tl-none border border-line bg-canvas p-md text-body-sm text-ink">
+      {{ t('preview.question') }}
+    </p>
+  </div>
+
+  <!-- Réponse : transparente, distinguée par le seul filet -->
+  <div class="flex gap-md">
+    <span
+      class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-label-caps text-on-primary"
+      aria-hidden="true"
+    >
+      D
+    </span>
+
+    <div class="grow">
+      <p class="mb-md text-body-sm text-ink">{{ t('preview.answer') }}</p>
+
+      <!-- Sources consultées : la traçabilité fait partie du produit -->
+      <div class="mb-md flex flex-wrap gap-sm">
+        <span uiChip>
+          <ui-icon name="folder" [size]="14" />
+          {{ t('preview.sourceDrive') }}
+        </span>
+        <span uiChip>
+          <ui-icon name="file-text" [size]="14" />
+          {{ t('preview.sourceKnowledge') }}
+        </span>
+      </div>
+
+      <!-- Action proposée : emerald, jamais burgundy — ce n'est pas un CTA critique -->
+      <span uiButton="success" size="sm" wrap class="w-full">
+        <ui-icon name="calendar-days" [size]="16" />
+        {{ t('preview.action') }}
+      </span>
+    </div>
+  </div>
+</div>

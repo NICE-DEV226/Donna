@@ -1,0 +1,60 @@
+<details
+  *transloco="let t"
+  class="group rounded-lg border border-line bg-surface"
+  [open]="open()"
+  (toggle)="toggle($any($event.target).open)"
+>
+  <summary
+    class="flex cursor-pointer items-center gap-sm px-md py-sm text-body-sm text-ink-muted transition-colors hover:text-ink"
+    [attr.aria-label]="open() ? t('workspace.research.collapse') : t('workspace.research.expand')"
+  >
+    @if (live()) {
+      <span class="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true"></span>
+      {{ t('workspace.research.searching') }}
+    } @else {
+      <ui-icon name="file-text" [size]="14" />
+      {{ t('workspace.research.done', { count: entries().length }) }}
+    }
+    <ui-icon
+      name="chevron-down"
+      [size]="16"
+      class="ml-auto shrink-0 transition-transform duration-200 group-open:rotate-180"
+    />
+  </summary>
+
+  <ul class="flex flex-col gap-md border-t border-line px-md py-md">
+    @for (entry of entries(); track entry.key) {
+      @let base = keyOf(entry);
+      @let excerpt = parts(t(base + '.excerpt'), t(base + '.match'));
+      <li class="trace-in flex gap-sm">
+        <ui-icon
+          [name]="entry.kind === 'web' ? 'globe' : 'file-text'"
+          [size]="14"
+          class="mt-[3px] shrink-0 text-ink-subtle"
+        />
+
+        <div class="min-w-0">
+          <!--
+            Un bouton, pas un lien : ouvrir une source ne doit pas faire quitter
+            la conversation. L'original reste accessible depuis le panneau.
+          -->
+          <button
+            type="button"
+            class="inline-flex max-w-full items-center gap-xs text-left text-body-sm font-medium text-ink transition-colors hover:text-primary"
+            [attr.title]="t('workspace.research.viewer.preview')"
+            (click)="read.emit(entry)"
+          >
+            <span class="truncate">{{ t(base + '.title') }}</span>
+            <ui-icon name="chevron-right" [size]="12" class="shrink-0 text-ink-subtle" />
+          </button>
+
+          <!-- L'extrait, avec le passage retenu teinté ET souligné. -->
+          <p class="mt-xs text-body-sm leading-relaxed text-ink-muted">
+            {{ excerpt.before }}<mark class="excerpt-match">{{ excerpt.match }}</mark
+            >{{ excerpt.after }}
+          </p>
+        </div>
+      </li>
+    }
+  </ul>
+</details>

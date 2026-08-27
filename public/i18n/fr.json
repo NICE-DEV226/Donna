@@ -1,0 +1,538 @@
+{
+  "nav": {
+    "how": "Comment ça marche",
+    "features": "Fonctionnalités",
+    "voices": "Témoignages",
+    "faq": "FAQ",
+    "signIn": "Connexion",
+    "getStarted": "Commencer"
+  },
+  "hero": {
+    "eyebrow": "L'assistante de direction augmentée de votre entreprise",
+    "title": "Votre entreprise, enfin comprise.",
+    "subtitle": "DONNA relie vos connaissances, vos outils et vos processus dans un seul espace de travail intelligent — vous demandez, et c'est fait.",
+    "ctaPrimary": "Continuer avec Google",
+    "ctaSecondary": "Voir comment ça marche",
+    "trust": "Accès restreint · Vos données n'entraînent aucun modèle · Connecteurs révocables à tout moment"
+  },
+  "loop": {
+    "eyebrow": "Comment ça marche",
+    "title": "Demandez avec vos mots. Elle s'occupe du reste.",
+    "body": "Aucun prompt à peaufiner, aucun tableau de bord à apprivoiser. DONNA lit vos mails, votre agenda, vos documents et vos conversations comme une seule mémoire — puis répond en citant ses sources, pour que vous puissiez vérifier.",
+    "points": {
+      "ask": "Demandez comme vous le demanderiez à un collègue.",
+      "read": "Elle interroge tous vos outils connectés d'un coup.",
+      "cite": "Chaque réponse nomme les documents qui la fondent."
+    }
+  },
+  "approve": {
+    "eyebrow": "Proactive, jamais présomptueuse",
+    "title": "Elle anticipe. Vous validez.",
+    "body": "DONNA fait remonter ce qui compte avant que vous ne le demandiez — une échéance qui tombe pendant un déplacement, une réponse qui aurait dû partir hier. Elle la rédige. Rien ne quitte votre compte sans votre accord.",
+    "draftLabel": "Réponse rédigée",
+    "draftTo": "À : Sarah Layton — Meridian Legal",
+    "draftSubject": "Re : Contrat-cadre de services — fenêtre de renouvellement",
+    "draftBody": "Sarah, merci pour l'alerte. La fenêtre de renouvellement se ferme le 14, et je suis en déplacement cette semaine-là. Pourrions-nous décaler la revue au jeudi 9 ?",
+    "approve": "Envoyer",
+    "edit": "Modifier d'abord",
+    "pending": "En attente de votre validation"
+  },
+  "why": {
+    "eyebrow": "Une assistante, pas un agent conversationnel",
+    "title": "La différence se joue après la réponse.",
+    "items": {
+      "context": {
+        "title": "Elle garde le contexte",
+        "body": "Une seule mémoire sur tous vos outils, au lieu d'une conversation qui repart de zéro à chaque onglet."
+      },
+      "act": {
+        "title": "Elle va au bout",
+        "body": "Rédiger, planifier, mettre à jour les dossiers — tout ce travail qui suit d'habitude la réponse."
+      },
+      "trace": {
+        "title": "Elle montre son raisonnement",
+        "body": "Chaque affirmation porte sa source, chaque action atterrit dans un journal que vous pouvez lire."
+      }
+    }
+  },
+  "bento": {
+    "eyebrow": "Ce qu'elle fait",
+    "title": "Aussi discrète qu'une excellente assistante. Nettement plus rapide.",
+    "tiles": {
+      "brief": {
+        "title": "Briefings du matin",
+        "body": "Ce qui a changé cette nuit, ce qui vous attend, ce qui peut patienter — avant votre première réunion."
+      },
+      "search": {
+        "title": "Une recherche pour tout",
+        "body": "Mails, agenda, documents et conversations interrogés ensemble, plus outil par outil."
+      },
+      "draft": {
+        "title": "Des brouillons à votre voix",
+        "body": "Elle apprend votre façon d'écrire, puis prépare la réponse que vous validez."
+      },
+      "meetings": {
+        "title": "Les réunions, réglées",
+        "body": "Planification, ordres du jour et relances négociés entre les agendas."
+      },
+      "memory": {
+        "title": "La mémoire de l'entreprise",
+        "body": "Politiques, contrats et précédents — retrouvés à l'instant où ils comptent."
+      },
+      "audit": {
+        "title": "Chaque action journalisée",
+        "body": "Un relevé complet et lisible de ce qu'elle a fait, et pourquoi."
+      }
+    }
+  },
+  "trusted": {
+    "eyebrow": "La confiance des équipes qui facturent à l'heure"
+  },
+  "voices": {
+    "eyebrow": "Témoignages",
+    "title": "Croyez-les plutôt que nous.",
+    "quotes": {
+      "one": {
+        "body": "J'ai arrêté de demander où étaient les choses. Elle avait déjà le fichier ouvert, la clause surlignée, et la réponse à la question que j'allais poser.",
+        "name": "Harvey Specter",
+        "role": "Associé gérant"
+      },
+      "two": {
+        "body": "C'est le journal d'audit qui a convaincu mon équipe conformité. Chaque action reste lisible après coup. C'est plus rare que ça ne devrait l'être.",
+        "name": "Rachel Zane",
+        "role": "Directrice juridique"
+      },
+      "three": {
+        "body": "Elle rédige suffisamment bien à ma voix pour que j'appuie simplement sur envoyer. L'heure que je perdais dans ma boîte mail a disparu.",
+        "name": "Louis Litt",
+        "role": "Associé senior"
+      },
+      "four": {
+        "body": "J'ai pris le pli en une après-midi. Aucun prompt à apprendre, aucun paramétrage — j'ai juste demandé, comme à une personne.",
+        "name": "Mike Ross",
+        "role": "Collaborateur"
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "Questions",
+    "title": "Les vraies questions.",
+    "items": {
+      "data": {
+        "q": "DONNA s'entraîne-t-elle sur les données de mon entreprise ?",
+        "a": "Non. Vos contenus servent à répondre à vos questions, et à rien d'autre. Ils n'entraînent jamais de modèle et ne sont jamais partagés avec d'autres clients."
+      },
+      "access": {
+        "q": "À quoi a-t-elle réellement accès ?",
+        "a": "Uniquement aux connecteurs que vous activez, avec un OAuth restreint au strict nécessaire. Vous pouvez révoquer un connecteur à tout moment : elle en perd l'accès immédiatement."
+      },
+      "act": {
+        "q": "Peut-elle agir sans me demander ?",
+        "a": "Jamais pour ce qui quitte votre compte. Elle rédige, propose et planifie, mais envoyer, partager et mettre à jour attendent toujours votre validation explicite."
+      },
+      "wrong": {
+        "q": "Que se passe-t-il quand elle se trompe ?",
+        "a": "Chaque réponse nomme les documents qui la fondent : vous vérifiez la source en un clic. Et quand elle n'est pas sûre, elle le dit au lieu de deviner."
+      },
+      "setup": {
+        "q": "Combien de temps pour l'installer ?",
+        "a": "Connectez-vous avec Google, branchez un ou deux outils — la plupart des équipes posent des questions utiles en moins de dix minutes. Rien à configurer, rien à entraîner."
+      }
+    }
+  },
+  "cta": {
+    "title": "Mettez DONNA au travail.",
+    "body": "Connectez votre espace de travail en une minute. Elle prend le relais.",
+    "button": "Continuer avec Google"
+  },
+  "footer": {
+    "tagline": "Vous demandez. Elle sait déjà.",
+    "product": "Produit",
+    "company": "Entreprise",
+    "links": {
+      "how": "Comment ça marche",
+      "features": "Fonctionnalités",
+      "security": "Sécurité",
+      "contact": "Contact",
+      "faq": "FAQ"
+    },
+    "rights": "DONNA AI. Sécurité entreprise.",
+    "contact": "Contact",
+    "signIn": "Connexion",
+    "getStarted": "Commencer"
+  },
+  "preview": {
+    "question": "Trouve tous les contrats qui expirent dans les 60 jours…",
+    "answer": "J'ai trouvé 14 contrats. Trois demandent une attention immédiate.",
+    "sourceDrive": "Google Drive",
+    "sourceKnowledge": "Base de connaissances",
+    "action": "Planifier une revue avec Sarah"
+  },
+  "auth": {
+    "back": "Retour à donna.ai",
+    "or": "ou",
+    "aside": {
+      "eyebrow": "Elle sait déjà",
+      "title": "DONNA lit vos mails, votre agenda et vos documents comme une seule mémoire — puis agit, sur votre parole.",
+      "oauth": "OAuth restreint — accès minimal, révocable à tout moment.",
+      "encrypted": "Chiffré au repos et en transit. Vos données n'entraînent aucun modèle.",
+      "audit": "Journal complet de chaque action menée par DONNA en votre nom."
+    },
+    "fields": {
+      "email": "E-mail professionnel",
+      "emailPlaceholder": "vous@entreprise.com",
+      "emailHint": "Utilisez votre adresse professionnelle pour que DONNA cartographie votre espace.",
+      "emailInvalid": "Saisissez une adresse professionnelle valide.",
+      "password": "Mot de passe",
+      "passwordHint": "Au moins {{count}} caractères.",
+      "passwordMin": "Utilisez au moins {{count}} caractères.",
+      "fullName": "Nom complet",
+      "fullNamePlaceholder": "Harvey Specter",
+      "required": "Ce champ est obligatoire.",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe"
+    },
+    "login": {
+      "title": "Content de vous revoir.",
+      "subtitle": "Connectez-vous pour reprendre exactement où DONNA s'était arrêtée.",
+      "google": "Continuer avec Google",
+      "forgot": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "submitting": "Connexion en cours…",
+      "newHere": "Nouveau chez DONNA ?",
+      "createAccount": "Créer un compte"
+    },
+    "signup": {
+      "title": "Mettez DONNA au travail.",
+      "subtitle": "Connectez votre espace de travail en une minute. Elle prend le relais.",
+      "google": "S'inscrire avec Google",
+      "submit": "Créer le compte",
+      "submitting": "Création de votre espace…",
+      "termsPrefix": "J'accepte les ",
+      "termsLink": "conditions d'utilisation",
+      "termsMiddle": " et la ",
+      "privacyLink": "politique de confidentialité",
+      "termsSuffix": ".",
+      "termsRequired": "Vous devez accepter pour continuer.",
+      "already": "Déjà chez DONNA ?",
+      "signIn": "Se connecter"
+    }
+  },
+  "workspace": {
+    "nav": {
+      "newChat": "Nouvelle conversation",
+      "recent": "Récentes",
+      "connectors": "Connecteurs",
+      "settings": "Paramètres",
+      "expand": "Déplier le panneau",
+      "collapse": "Replier le panneau",
+      "notifications": "Notifications",
+      "account": "Votre compte"
+    },
+    "conversations": {
+      "one": {
+        "title": "Renouvellements de contrats — T3",
+        "question": "Quels renouvellements tombent au T3 ?",
+        "answer": "Quatre : Meridian le 14, Halloway le 30, Kestrel et Ardent en septembre. Seul Meridian demande une décision cette semaine."
+      },
+      "two": {
+        "title": "Présentation au conseil, jeudi",
+        "question": "Qu'est-ce qui a changé dans les chiffres depuis la dernière version ?",
+        "answer": "Le chiffre d'affaires tient, mais deux de vos trois plus gros contrats se renouvellent désormais dans la même quinzaine. J'ai signalé la concentration en page 6."
+      },
+      "three": {
+        "title": "Contre-proposition Meridian",
+        "question": "Comment avons-nous répondu à leur dernière contre-proposition ?",
+        "answer": "Vous avez cédé sur le préavis et tenu le prix. Leur conseil a accepté par écrit le 2 août — j'ai gardé le fil."
+      },
+      "untitled": "Nouvelle conversation"
+    },
+    "empty": {
+      "greeting": "Bonjour, je suis DONNA.",
+      "prompt": "Que puis-je faire pour vous ?"
+    },
+    "suggestions": {
+      "search": "Chercher dans la base de connaissances",
+      "analyze": "Analyser des documents",
+      "draft": "Rédiger une synthèse"
+    },
+    "composer": {
+      "placeholder": "Demandez à DONNA ce que vous voulez sur votre entreprise…",
+      "attach": "Joindre un fichier",
+      "voice": "Dicter",
+      "send": "Envoyer",
+      "caption": "Propulsé par XCore"
+    },
+    "connections": {
+      "title": "Connexions actives",
+      "connected": "Connecté",
+      "disconnected": "Non connecté",
+      "drive": "Google Drive",
+      "calendar": "Google Agenda",
+      "slack": "Slack",
+      "gmail": "Gmail"
+    },
+    "message": {
+      "you": "Vous",
+      "donna": "DONNA",
+      "sources": "Sources",
+      "approve": "Valider",
+      "edit": "Modifier d'abord",
+      "approved": "Validé — DONNA s'en occupe.",
+      "editLabel": "Modifier l'action",
+      "save": "Enregistrer et valider",
+      "cancel": "Annuler"
+    },
+    "demo": {
+      "answer": "J'ai trouvé 14 contrats qui expirent dans les 60 jours. Trois demandent une attention immédiate : Meridian Legal, Halloway Group et Kestrel Partners. La fenêtre Meridian se ferme le 14, pendant votre déplacement.",
+      "action": "Planifier une revue avec Sarah le jeudi 9"
+    },
+    "setup": {
+      "title": "Constituons la mémoire de votre entreprise.",
+      "body": "Ajoutez les documents que DONNA doit connaître — contrats, politiques, précédents — et branchez vos outils. Elle indexe tout une fois. Ensuite, elle sait.",
+      "drop": "Déposez vos documents ici",
+      "dropHint": "PDF, Word, tableurs et présentations — jusqu'à 200 Mo par fichier",
+      "browse": "Choisir des fichiers",
+      "selected": "{{count}} documents prêts",
+      "start": "Initialiser mon espace",
+      "skip": "Plus tard",
+      "indexing": {
+        "title": "Construction de la mémoire de votre entreprise",
+        "reading": "Lecture de vos documents",
+        "extracting": "Extraction des clauses et des entités",
+        "indexing": "Indexation de la mémoire",
+        "progress": "{{count}} documents traités",
+        "done": "Votre espace est prêt.",
+        "announce": "DONNA : {{step}}"
+      }
+    },
+    "research": {
+      "searching": "Consultation de vos sources…",
+      "done": "{{count}} sources consultées",
+      "expand": "Voir ce que DONNA a consulté",
+      "collapse": "Masquer les sources",
+      "document": "Document",
+      "web": "Web",
+      "open": "Ouvrir la source",
+      "entries": {
+        "one": {
+          "title": "Meridian Legal — contrat-cadre de services",
+          "url": "https://drive.google.com/file/meridian-msa",
+          "excerpt": "Le contrat se renouvelle par tacite reconduction sauf dénonciation ; la fenêtre de renouvellement se ferme le 14 septembre et aucune prorogation n'a été déposée.",
+          "match": "la fenêtre de renouvellement se ferme le 14 septembre",
+          "meta": "Google Drive · Modifié le 3 août · 14 pages",
+          "before": "5. Durée et renouvellement. La durée initiale court sur vingt-quatre mois à compter de la date d'effet fixée à l'annexe 1.",
+          "after": "La dénonciation doit être notifiée par écrit au siège social, avec copie au responsable de compte désigné à l'annexe 3."
+        },
+        "two": {
+          "title": "Halloway Group — contrat de fourniture, annexe 2",
+          "url": "https://drive.google.com/file/halloway-supply",
+          "excerpt": "Les prix sont fermes sur la durée initiale. La résiliation pour convenance exige un préavis écrit de soixante jours à l'adresse du siège.",
+          "match": "exige un préavis écrit de soixante jours",
+          "meta": "Google Drive · Modifié le 22 juillet · 9 pages",
+          "before": "Annexe 2 — conditions commerciales. Les volumes sont revus chaque trimestre au regard des prévisions fournies par l'acheteur.",
+          "after": "En cas de préavis tardif, le contrat est prorogé de douze mois aux mêmes conditions commerciales."
+        },
+        "three": {
+          "title": "Kestrel Partners — historique des dépôts",
+          "url": "https://find-and-update.company-information.service.gov.uk/kestrel",
+          "excerpt": "Un changement de siège social a été déposé le 3 août, ce qui rend caduque l'adresse de notification figurant à notre contrat.",
+          "match": "rend caduque l'adresse de notification",
+          "meta": "Registre du commerce · Dépôt public · Consulté aujourd'hui",
+          "before": "Kestrel Partners LLP — historique des dépôts, du plus récent au plus ancien.",
+          "after": "Aucun autre changement n'a été déposé depuis. L'adresse précédente figure encore sur les documents antérieurs à cette date."
+        },
+        "four": {
+          "title": "Politique achats v4",
+          "url": "https://drive.google.com/file/procurement-v4",
+          "excerpt": "Tout renouvellement supérieur à 250 000 € doit être revu par la direction juridique avant la date limite de dénonciation.",
+          "match": "doit être revu par la direction juridique",
+          "meta": "Google Drive · Modifié le 11 juin · 6 pages",
+          "before": "Section 4 — validations. Les seuils sont fixés chaque année par le comité financier et publiés au manuel interne.",
+          "after": "Une revue demandée à moins de cinq jours ouvrés peut être refusée."
+        },
+        "agenda": {
+          "title": "Ordre du jour — revue Meridian, jeudi 9",
+          "url": "https://drive.google.com/file/meridian-agenda",
+          "meta": "Rédigé par DONNA · Pas encore envoyé",
+          "before": "1. Fenêtre de renouvellement — se ferme le 14 septembre. Décision avant le départ.",
+          "excerpt": "2. Adresse de notification — leur siège a changé le 3 août ; notre clause désigne encore l'adresse précédente.",
+          "match": "notre clause désigne encore l'adresse précédente",
+          "after": "3. Prix — maintenir les conditions actuelles. 4. Suites et responsable."
+        }
+      },
+      "viewer": {
+        "cited": "Passage cité",
+        "close": "Fermer le document",
+        "openExternal": "Ouvrir l'original",
+        "preview": "Aperçu dans DONNA"
+      }
+    },
+    "memory": {
+      "saved": "Enregistré dans la mémoire de l'entreprise",
+      "detail": "Fenêtre de renouvellement Meridian — 14 septembre",
+      "view": "Voir",
+      "dismiss": "Fermer"
+    },
+    "reminder": {
+      "trigger": "rappel",
+      "confirm": "C'est noté. Je viendrai à 14 h 45, pas à 15 h — vous voudrez une minute avec la clause avant qu'elle n'entre.",
+      "time": "Il est 14 h 45.",
+      "lead": "Sarah Layton, dans quinze minutes. Le renouvellement Meridian que vous m'avez demandé de surveiller.",
+      "changedLabel": "Deux choses ont bougé depuis votre demande :",
+      "changes": {
+        "one": "La fenêtre de renouvellement se ferme le 14, pas le 21.",
+        "two": "Leur siège a changé le 3 août — votre clause de notification vise toujours l'ancienne adresse."
+      },
+      "prepared": "J'ai préparé l'ordre du jour et sorti la clause. Vous n'avez pas eu à le demander.",
+      "openAgenda": "Ouvrir l'ordre du jour",
+      "sendAgenda": "L'envoyer à Sarah",
+      "later": "Pas maintenant",
+      "deferred": "Mis de côté. Je le remonte à 16 h.",
+      "badge": "DONNA est venue vers vous",
+      "sent": "Envoyé à Sarah. J'en ai gardé une copie au dossier Meridian."
+    },
+    "clarify": {
+      "trigger": "contrat",
+      "question": "Avant de répondre — lequel ? Trois sont en jeu, et ils ne disent pas la même chose.",
+      "options": {
+        "meridian": "Meridian Legal",
+        "halloway": "Halloway Group",
+        "all": "Les trois, côte à côte"
+      },
+      "note": "Je préfère demander que vous donner une réponse fausse avec aplomb."
+    },
+    "projects": {
+      "title": "Projets",
+      "new": "Nouveau projet",
+      "documents": "{{count}} documents",
+      "create": "Créer le projet",
+      "cancel": "Annuler",
+      "nameLabel": "Nom du projet",
+      "namePlaceholder": "Meridian — renouvellement 2026",
+      "clientLabel": "Client",
+      "clientPlaceholder": "Meridian Legal",
+      "addDocuments": "Ajouter des documents",
+      "addHint": "Déposez des fichiers, ou choisissez-les",
+      "ready": "{{count}} documents prêts",
+      "sharedNote": "Les documents rejoignent la base de connaissances générale — DONNA s'en sert depuis n'importe quelle conversation. Ce qu'elle retient de ce client, en revanche, reste dans la mémoire propre du projet.",
+      "nameRequired": "Donnez un nom au projet.",
+      "created": "Projet créé",
+      "indexing": "Indexation de ses documents dans la mémoire",
+      "seed": {
+        "meridian": "Meridian — contrat de services",
+        "halloway": "Halloway — renouvellement fourniture",
+        "kestrel": "Kestrel — audit d'acquisition"
+      },
+      "memory": {
+        "title": "{{client}} — mémoire du projet",
+        "subtitle": "Séparée des autres clients. Les documents, eux, ne le sont pas.",
+        "empty": "Rien de retenu pour ce client à ce stade.",
+        "companyTitle": "Mémoire de l'entreprise",
+        "savedToProject": "Enregistré dans la mémoire de {{client}}",
+        "savedToCompany": "Enregistré dans la mémoire de l'entreprise",
+        "scopeProject": "Ce client uniquement",
+        "scopeCompany": "Toutes les conversations"
+      },
+      "seedMemory": {
+        "meridian": {
+          "one": "La fenêtre de renouvellement se ferme le 14 septembre — pas le 21, contrairement à la fiche de synthèse.",
+          "two": "Leur siège a changé le 3 août ; la clause de notification n'a jamais été mise à jour.",
+          "three": "Harvey a cédé sur le préavis et tenu le prix. Accepté par écrit le 2 août."
+        },
+        "halloway": {
+          "one": "Préavis écrit de soixante jours, à l'adresse du siège exclusivement.",
+          "two": "Un préavis tardif proroge le contrat de douze mois au même prix."
+        },
+        "kestrel": {
+          "one": "Audit ouvert le 12 juillet. Historique des dépôts récupéré au registre du commerce."
+        }
+      }
+    },
+    "account": {
+      "name": "Harvey Specter",
+      "email": "harvey@pearsonhardman.com",
+      "role": "Associé gérant",
+      "profile": "Votre profil",
+      "settings": "Paramètres",
+      "signOut": "Se déconnecter"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "connectors": {
+        "title": "Connecteurs",
+        "body": "DONNA ne lit que ce que vous activez. Coupez-en un et elle en perd l'accès immédiatement.",
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
+        "connected": "Connecté",
+        "disconnected": "Non connecté"
+      },
+      "language": {
+        "title": "Langue",
+        "body": "S'applique à tout l'espace de travail, y compris à ce que DONNA rédige."
+      },
+      "memory": {
+        "title": "Mémoire de l'entreprise",
+        "body": "{{count}} documents indexés. Vos contenus répondent à vos questions et n'entraînent jamais de modèle.",
+        "purge": "Effacer la mémoire",
+        "purged": "Mémoire effacée"
+      }
+    },
+    "profile": {
+      "title": "Votre profil",
+      "nameLabel": "Nom complet",
+      "emailLabel": "E-mail professionnel",
+      "roleLabel": "Fonction",
+      "save": "Enregistrer",
+      "saved": "Profil mis à jour"
+    },
+    "connectorsList": {
+      "drive": {
+        "detail": "Contrats, politiques et précédents"
+      },
+      "calendar": {
+        "detail": "Réunions, disponibilités et conflits"
+      },
+      "slack": {
+        "detail": "Conversations et décisions d'équipe"
+      },
+      "gmail": {
+        "detail": "Fils, brouillons et pièces jointes"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "empty": "Rien pour l'instant. DONNA vous préviendra quand elle décidera quelque chose.",
+      "clear": "Tout effacer"
+    },
+    "attachments": {
+      "label": "{{count}} pièce(s) jointe(s)",
+      "remove": "Retirer {{name}}"
+    },
+    "voice": {
+      "start": "Dicter",
+      "stop": "Arrêter la dictée",
+      "listening": "Écoute…"
+    }
+  },
+  "security": {
+    "eyebrow": "Sécurité",
+    "title": "Elle travaille à l'intérieur de vos murs.",
+    "body": "DONNA lit ce que vous connectez, et rien d'autre. Chaque permission est restreinte, chaque action est consignée, et vous lui coupez l'accès en un clic.",
+    "items": {
+      "scoped": {
+        "title": "Le minimum de droits, par défaut",
+        "body": "Un OAuth restreint par connecteur. Elle voit les dossiers que vous accordez, pas le disque."
+      },
+      "encrypted": {
+        "title": "Chiffré, et jamais utilisé pour entraîner",
+        "body": "Au repos comme en transit. Vos contenus répondent à vos questions — ils ne deviennent pas un modèle."
+      },
+      "audited": {
+        "title": "Chaque action consignée",
+        "body": "Un journal lisible de ce qu'elle a fait, quand, et sur quel document elle s'est appuyée."
+      }
+    },
+    "revoke": "Révoquez un connecteur à tout moment"
+  }
+}

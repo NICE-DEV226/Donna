@@ -1,0 +1,10 @@
+<section *transloco="let t" class="border-y border-line bg-surface-sunken py-xl">
+  <div class="mx-auto max-w-page px-lg text-center">
+    <p class="text-label-caps uppercase text-ink-subtle">{{ t('trusted.eyebrow') }}</p>
+    <ul class="mt-lg flex flex-wrap items-center justify-center gap-x-xl gap-y-md">
+      @for (firm of firms; track firm) {
+        <li class="text-body-lg font-semibold tracking-tight text-ink-subtle">{{ firm }}</li>
+      }
+    </ul>
+  </div>
+</section>

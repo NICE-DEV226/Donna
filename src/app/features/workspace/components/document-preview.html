@@ -1,0 +1,67 @@
+@if (base(); as key) {
+  <!--
+    Panneau latéral plutôt que modal : la conversation reste lisible à gauche,
+    on compare le texte cité et la réponse sans rien perdre.
+
+    `autoCapture` amène le focus dans le panneau à l'ouverture — sans quoi
+    Échap ne l'atteint jamais — et le rend au déclencheur à la fermeture.
+  -->
+  <aside
+    *transloco="let t"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    role="dialog"
+    [attr.aria-label]="t(key + '.title')"
+    class="flyout fixed inset-y-0 right-0 z-40 flex w-full max-w-aside flex-col bg-surface shadow-floating lg:border-l lg:border-line"
+    (keydown)="onKeydown($event)"
+  >
+    <header class="flex items-start gap-md p-lg">
+      <ui-icon
+        [name]="store.openSource()!.kind === 'web' ? 'globe' : 'file-text'"
+        [size]="18"
+        class="mt-xs shrink-0 text-ink-muted"
+      />
+      <div class="min-w-0 grow">
+        <h2 class="text-body-md font-semibold text-ink">{{ t(key + '.title') }}</h2>
+        <p class="mt-xs text-body-sm text-ink-subtle">{{ t(key + '.meta') }}</p>
+      </div>
+      <button
+        type="button"
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+        [attr.aria-label]="t('workspace.research.viewer.close')"
+        (click)="store.closeSource()"
+      >
+        <ui-icon name="x" [size]="16" />
+      </button>
+    </header>
+
+    <div class="min-h-0 grow overflow-y-auto px-lg pb-lg">
+      <article class="flex flex-col gap-md text-body-sm leading-relaxed text-ink-muted">
+        <p>{{ t(key + '.before') }}</p>
+
+        <!-- Le passage cité : repéré par un filet, pas seulement par une teinte. -->
+        <p
+          class="border-l-2 border-primary bg-primary/[0.05] py-sm pr-md pl-md text-ink"
+          [attr.aria-label]="t('workspace.research.viewer.cited')"
+        >
+          {{ t(key + '.excerpt') }}
+        </p>
+
+        <p>{{ t(key + '.after') }}</p>
+      </article>
+    </div>
+
+    <footer class="p-lg">
+      <!-- Quitter la page reste possible, mais devient un choix explicite. -->
+      <a
+        [href]="t(key + '.url')"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-sm text-body-sm text-ink-muted transition-colors hover:text-primary"
+      >
+        <ui-icon name="external-link" [size]="14" />
+        {{ t('workspace.research.viewer.openExternal') }}
+      </a>
+    </footer>
+  </aside>
+}

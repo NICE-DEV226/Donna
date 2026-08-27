@@ -1,0 +1,55 @@
+<!-- Seule surface sombre du site : elle clôt la page sans concurrencer le contenu. -->
+<footer *transloco="let t" class="mt-auto bg-surface-inverse py-xxl text-ink-inverse">
+  <div class="mx-auto grid max-w-page gap-xl px-lg md:grid-cols-[2fr_1fr_1fr]">
+    <div>
+      <p
+        class="donna-lockup inline-flex items-center gap-sm text-headline-md font-bold tracking-tight"
+      >
+        <donna-mark [size]="26" />
+        DONNA
+      </p>
+      <p class="mt-sm max-w-measure text-body-sm text-ink-inverse/60">{{ t('footer.tagline') }}</p>
+    </div>
+
+    @for (column of columns; track column.heading) {
+      <nav [attr.aria-label]="t(column.heading)">
+        <p class="mb-md text-label-caps uppercase text-ink-inverse/40">{{ t(column.heading) }}</p>
+        <ul class="flex flex-col gap-sm">
+          @for (link of column.links; track link.key) {
+            <li>
+              @if (link.fragment) {
+                <a
+                  routerLink="/"
+                  [fragment]="link.fragment"
+                  class="text-body-sm text-ink-inverse/70 transition-colors hover:text-ink-inverse"
+                >
+                  {{ t(link.key) }}
+                </a>
+              } @else if (link.route) {
+                <a
+                  [routerLink]="link.route"
+                  class="text-body-sm text-ink-inverse/70 transition-colors hover:text-ink-inverse"
+                >
+                  {{ t(link.key) }}
+                </a>
+              } @else {
+                <a
+                  [href]="link.href"
+                  class="text-body-sm text-ink-inverse/70 transition-colors hover:text-ink-inverse"
+                >
+                  {{ t(link.key) }}
+                </a>
+              }
+            </li>
+          }
+        </ul>
+      </nav>
+    }
+  </div>
+
+  <div class="mx-auto mt-xxl max-w-page px-lg">
+    <p class="border-t border-ink-inverse/10 pt-lg text-body-sm text-ink-inverse/40">
+      © {{ year }} {{ t('footer.rights') }}
+    </p>
+  </div>
+</footer>

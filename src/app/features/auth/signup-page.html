@@ -1,0 +1,105 @@
+<auth-layout>
+  <ng-container *transloco="let t">
+    <h1 class="text-headline-lg text-ink">{{ t('auth.signup.title') }}</h1>
+    <p class="mt-sm text-body-md text-ink-muted">{{ t('auth.signup.subtitle') }}</p>
+
+    <div class="mt-xl">
+      <oauth-block labelKey="auth.signup.google" (authenticate)="signUpWithGoogle()" />
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="flex flex-col gap-md">
+      <ui-field
+        [label]="t('auth.fields.fullName')"
+        controlId="fullName"
+        [control]="form.controls.fullName"
+        [messages]="{ required: t('auth.fields.required') }"
+      >
+        <input
+          uiInput
+          id="fullName"
+          type="text"
+          formControlName="fullName"
+          autocomplete="name"
+          [placeholder]="t('auth.fields.fullNamePlaceholder')"
+          aria-describedby="fullName-description"
+        />
+      </ui-field>
+
+      <ui-field
+        [label]="t('auth.fields.email')"
+        controlId="email"
+        [control]="form.controls.email"
+        [hint]="t('auth.fields.emailHint')"
+        [messages]="{
+          required: t('auth.fields.required'),
+          email: t('auth.fields.emailInvalid'),
+        }"
+      >
+        <input
+          uiInput
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          [placeholder]="t('auth.fields.emailPlaceholder')"
+          aria-describedby="email-description"
+        />
+      </ui-field>
+
+      <password-field
+        [control]="form.controls.password"
+        autocomplete="new-password"
+        [hint]="t('auth.fields.passwordHint', { count: minPasswordLength })"
+        [messages]="{
+          required: t('auth.fields.required'),
+          minlength: t('auth.fields.passwordMin', { count: minPasswordLength }),
+        }"
+      />
+
+      <!-- Consentement explicite : requiredTrue, donc la soumission reste sans effet tant qu'il manque -->
+      <div class="mt-sm">
+        <label class="flex cursor-pointer items-start gap-sm">
+          <input
+            type="checkbox"
+            formControlName="terms"
+            class="mt-[3px] size-4 shrink-0 cursor-pointer rounded-sm border-line accent-primary"
+            aria-describedby="terms-description"
+          />
+          <span class="text-body-sm text-ink-muted">
+            {{ t('auth.signup.termsPrefix')
+            }}<a href="#" class="text-ink underline hover:text-primary">{{
+              t('auth.signup.termsLink')
+            }}</a
+            >{{ t('auth.signup.termsMiddle')
+            }}<a href="#" class="text-ink underline hover:text-primary">{{
+              t('auth.signup.privacyLink')
+            }}</a
+            >{{ t('auth.signup.termsSuffix') }}
+          </span>
+        </label>
+
+        @if (form.controls.terms.invalid && form.controls.terms.touched) {
+          <p id="terms-description" role="alert" class="mt-xs text-body-sm text-danger">
+            {{ t('auth.signup.termsRequired') }}
+          </p>
+        }
+      </div>
+
+      <button type="submit" uiButton="secondary" class="mt-sm w-full" [disabled]="pending()">
+        @if (pending()) {
+          <ui-icon name="loader-circle" [size]="18" class="animate-spin" />
+          {{ t('auth.signup.submitting') }}
+        } @else {
+          {{ t('auth.signup.submit') }}
+        }
+      </button>
+    </form>
+
+    <p class="mt-xl text-body-sm text-ink-muted">
+      {{ t('auth.signup.already') }}
+      <a routerLink="/login" class="font-semibold text-primary hover:underline">
+        {{ t('auth.signup.signIn') }}
+      </a>
+    </p>
+  </ng-container>
+</auth-layout>

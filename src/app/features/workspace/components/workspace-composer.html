@@ -1,0 +1,89 @@
+<div *transloco="let t">
+  @if (attachments().length) {
+    <ul class="mb-sm flex flex-wrap gap-sm">
+      @for (name of attachments(); track name) {
+        <li
+          class="inline-flex items-center gap-xs rounded-full bg-surface-raised px-sm py-xs text-body-sm text-ink-muted"
+        >
+          <ui-icon name="paperclip" [size]="12" class="shrink-0" />
+          <span class="max-w-[14rem] truncate">{{ name }}</span>
+          <button
+            type="button"
+            class="ml-xs text-ink-subtle transition-colors hover:text-danger"
+            [attr.aria-label]="t('workspace.attachments.remove', { name })"
+            (click)="removeAttachment(name)"
+          >
+            <ui-icon name="x" [size]="12" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <form
+    class="flex items-end gap-sm rounded-xl border border-line bg-surface p-sm shadow-floating transition-colors focus-within:border-primary"
+    (ngSubmit)="submit()"
+  >
+    <button
+      type="button"
+      class="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-sunken hover:text-primary"
+      [attr.aria-label]="t('workspace.composer.attach')"
+      (click)="fileInput.click()"
+    >
+      <ui-icon name="paperclip" [size]="18" />
+    </button>
+    <input #fileInput type="file" multiple class="sr-only" (change)="onFiles($event)" />
+
+    <!--
+      cdkTextareaAutosize (Angular CDK) gère la hauteur : pas de script maison,
+      et le champ reste un <textarea> natif, donc dictée et correcteur marchent.
+
+      L'espacement vertical passe par une MARGE, pas par du padding : le CDK
+      calcule la hauteur en border-box, donc un padding vertical lui volerait
+      la hauteur d'une ligne et couperait le texte.
+    -->
+    <textarea
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="1"
+      cdkAutosizeMaxRows="6"
+      class="my-sm grow resize-none border-none bg-transparent px-sm py-0 text-body-md text-ink placeholder:text-ink-subtle focus:outline-none"
+      [placeholder]="t('workspace.composer.placeholder')"
+      [ngModel]="draft()"
+      (ngModelChange)="draft.set($event)"
+      name="draft"
+      [attr.aria-label]="t('workspace.composer.placeholder')"
+      (keydown.enter)="onEnter($event)"
+    ></textarea>
+
+    <div class="flex shrink-0 items-center gap-xs">
+      <!-- Affiché uniquement là où la dictée existe vraiment. -->
+      @if (voiceSupported) {
+        <button
+          type="button"
+          class="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-surface-sunken"
+          [class.text-ink-muted]="!listening()"
+          [class.text-primary]="listening()"
+          [class.bg-primary-soft]="listening()"
+          [attr.aria-label]="listening() ? t('workspace.voice.stop') : t('workspace.voice.start')"
+          [attr.aria-pressed]="listening()"
+          (click)="toggleVoice(language.current())"
+        >
+          <ui-icon name="mic" [size]="18" [class.animate-pulse]="listening()" />
+        </button>
+      }
+
+      <button
+        type="submit"
+        class="flex size-9 items-center justify-center rounded-full bg-primary text-on-primary transition-opacity hover:opacity-90 disabled:opacity-40"
+        [disabled]="!canSend()"
+        [attr.aria-label]="t('workspace.composer.send')"
+      >
+        <ui-icon name="arrow-up" [size]="18" />
+      </button>
+    </div>
+  </form>
+
+  <p class="mt-sm text-center text-label-caps uppercase text-ink-subtle">
+    {{ t('workspace.composer.caption') }}
+  </p>
+</div>

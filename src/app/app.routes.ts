@@ -1,0 +1,43 @@
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  {
+    path: '',
+    title: 'DONNA — Your company, understood.',
+    loadComponent: () => import('./features/landing/landing-page').then((m) => m.LandingPage),
+  },
+  {
+    path: 'login',
+    title: 'Sign in — DONNA',
+    loadComponent: () => import('./features/auth/login-page').then((m) => m.LoginPage),
+  },
+  {
+    path: 'signup',
+    title: 'Create your account — DONNA',
+    loadComponent: () => import('./features/auth/signup-page').then((m) => m.SignupPage),
+  },
+  {
+    path: 'workspace',
+    loadComponent: () => import('./features/workspace/workspace-page').then((m) => m.WorkspacePage),
+    children: [
+      {
+        path: '',
+        title: 'Workspace — DONNA',
+        loadComponent: () =>
+          import('./features/workspace/workspace-home').then((m) => m.WorkspaceHome),
+      },
+      {
+        path: 'settings',
+        title: 'Settings — DONNA',
+        loadComponent: () =>
+          import('./features/workspace/settings-page').then((m) => m.SettingsPage),
+      },
+      {
+        path: 'profile',
+        title: 'Profile — DONNA',
+        loadComponent: () => import('./features/workspace/profile-page').then((m) => m.ProfilePage),
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
+];

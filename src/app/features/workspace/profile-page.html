@@ -1,0 +1,67 @@
+<div *transloco="let t" class="mx-auto flex max-w-form flex-col px-lg py-xl">
+  <h1 class="text-headline-lg text-ink">{{ t('workspace.profile.title') }}</h1>
+
+  <div class="mt-lg flex items-center gap-md">
+    <!-- Monogramme : pas de photo inventée. -->
+    <ui-avatar [name]="form.controls.name.value || 'D'" [size]="56" />
+    <div class="min-w-0">
+      <p class="truncate text-body-md font-semibold text-ink">{{ form.controls.name.value }}</p>
+      <p class="truncate text-body-sm text-ink-muted">{{ form.controls.email.value }}</p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="mt-xl flex flex-col gap-md">
+    <ui-field
+      [label]="t('workspace.profile.nameLabel')"
+      controlId="profile-name"
+      [control]="form.controls.name"
+      [messages]="{ required: t('auth.fields.required') }"
+    >
+      <input
+        uiInput
+        id="profile-name"
+        type="text"
+        formControlName="name"
+        autocomplete="name"
+        aria-describedby="profile-name-description"
+      />
+    </ui-field>
+
+    <ui-field
+      [label]="t('workspace.profile.emailLabel')"
+      controlId="profile-email"
+      [control]="form.controls.email"
+      [messages]="{
+        required: t('auth.fields.required'),
+        email: t('auth.fields.emailInvalid'),
+      }"
+    >
+      <input
+        uiInput
+        id="profile-email"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        aria-describedby="profile-email-description"
+      />
+    </ui-field>
+
+    <ui-field
+      [label]="t('workspace.profile.roleLabel')"
+      controlId="profile-role"
+      [control]="form.controls.role"
+    >
+      <input
+        uiInput
+        id="profile-role"
+        type="text"
+        formControlName="role"
+        aria-describedby="profile-role-description"
+      />
+    </ui-field>
+
+    <button type="submit" uiButton class="mt-sm self-start">
+      {{ t('workspace.profile.save') }}
+    </button>
+  </form>
+</div>

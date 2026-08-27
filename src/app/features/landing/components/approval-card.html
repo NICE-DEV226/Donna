@@ -1,0 +1,23 @@
+<article
+  *transloco="let t"
+  class="overflow-hidden rounded-xl border border-line bg-surface shadow-floating"
+>
+  <header class="flex flex-wrap items-center justify-between gap-sm border-b border-line px-lg py-md">
+    <span uiChip="primary">
+      <ui-icon name="file-pen-line" [size]="14" />
+      {{ t('approve.draftLabel') }}
+    </span>
+    <span class="text-body-sm text-ink-subtle">{{ t('approve.pending') }}</span>
+  </header>
+
+  <div class="px-lg py-lg">
+    <p class="text-body-sm text-ink-muted">{{ t('approve.draftTo') }}</p>
+    <p class="mt-xs text-body-md font-semibold text-ink">{{ t('approve.draftSubject') }}</p>
+    <p class="mt-md text-body-sm leading-relaxed text-ink-muted">{{ t('approve.draftBody') }}</p>
+  </div>
+
+  <footer class="flex flex-wrap gap-sm border-t border-line bg-surface-sunken px-lg py-md">
+    <span uiButton size="sm">{{ t('approve.approve') }}</span>
+    <span uiButton="secondary" size="sm">{{ t('approve.edit') }}</span>
+  </footer>
+</article>

@@ -1,0 +1,33 @@
+<section *transloco="let t" id="features" class="scroll-mt-20 border-t border-line bg-canvas py-xxl">
+  <div class="mx-auto max-w-page px-lg">
+    <div uiReveal class="max-w-measure">
+      <p class="mb-md text-label-caps text-primary">{{ t('bento.eyebrow') }}</p>
+      <h2 class="text-mobile-headline text-ink sm:text-headline-lg lg:text-display">
+        {{ t('bento.title') }}
+      </h2>
+    </div>
+
+    <!-- Grille de 6 colonnes : les tuiles composent des rangées de largeurs variées. -->
+    <ul class="mt-xl grid gap-lg md:grid-cols-6">
+      @for (tile of tiles; track tile.title; let i = $index) {
+        <li
+          [uiReveal]="i * 80"
+          class="rounded-xl border border-line p-lg"
+          [class]="tile.span + ' ' + tile.tone"
+          [class.md:flex]="tile.wide"
+          [class.md:items-center]="tile.wide"
+          [class.md:gap-xl]="tile.wide"
+        >
+          <div class="mb-lg w-full max-w-spot" [class.md:mb-0]="tile.wide">
+            <ng-container *ngComponentOutlet="tile.illustration" />
+          </div>
+
+          <div>
+            <h3 class="text-headline-md text-ink">{{ t(tile.title) }}</h3>
+            <p class="mt-sm max-w-measure text-body-sm text-ink-muted">{{ t(tile.body) }}</p>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

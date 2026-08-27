@@ -1,0 +1,45 @@
+<section *transloco="let t">
+  @let project = store.activeProject();
+  @let notes = project ? project.memory : store.companyMemory();
+
+  <header class="mb-md">
+    <h2 class="text-label-caps uppercase text-ink-muted">
+      @if (project) {
+        {{ t('workspace.projects.memory.title', { client: project.client }) }}
+      } @else {
+        {{ t('workspace.projects.memory.companyTitle') }}
+      }
+    </h2>
+
+    <!-- La portée est écrite, pas devinée. -->
+    <p class="mt-xs inline-flex items-center gap-xs text-body-sm text-ink-subtle">
+      <ui-icon [name]="project ? 'folder' : 'brain'" [size]="12" class="shrink-0" />
+      {{
+        project
+          ? t('workspace.projects.memory.scopeProject')
+          : t('workspace.projects.memory.scopeCompany')
+      }}
+    </p>
+  </header>
+
+  @if (notes.length) {
+    <ul class="flex flex-col gap-md">
+      @for (note of notes; track note.id) {
+        <li class="flex gap-sm">
+          <span class="mt-[7px] size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+          <p class="text-body-sm leading-relaxed text-ink-muted">
+            {{ note.textKey ? t(note.textKey) : note.text }}
+          </p>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="text-body-sm text-ink-subtle">{{ t('workspace.projects.memory.empty') }}</p>
+  }
+
+  @if (project) {
+    <p class="mt-lg border-t border-line pt-md text-body-sm text-ink-subtle">
+      {{ t('workspace.projects.memory.subtitle') }}
+    </p>
+  }
+</section>

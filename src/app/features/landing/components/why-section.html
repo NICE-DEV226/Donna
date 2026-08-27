@@ -1,0 +1,18 @@
+<section *transloco="let t" class="py-xxl">
+  <div class="mx-auto max-w-page px-lg">
+    <div uiReveal class="max-w-measure">
+      <p class="mb-md text-label-caps text-primary">{{ t('why.eyebrow') }}</p>
+      <h2 class="text-mobile-headline text-ink sm:text-headline-lg">{{ t('why.title') }}</h2>
+    </div>
+
+    <ul class="mt-xl grid gap-xl md:grid-cols-3">
+      @for (item of items; track item.title; let i = $index) {
+        <li [uiReveal]="i * 100">
+          <ui-icon [name]="item.icon" [size]="24" class="text-primary" />
+          <h3 class="mt-md text-headline-md text-ink">{{ t(item.title) }}</h3>
+          <p class="mt-sm text-body-sm text-ink-muted">{{ t(item.body) }}</p>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
