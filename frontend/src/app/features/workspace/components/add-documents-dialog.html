@@ -1,0 +1,76 @@
+@if (store.addDocumentsOpen()) {
+  <aside
+    *transloco="let t"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    role="dialog"
+    [attr.aria-label]="t('workspace.addDocuments.title')"
+    class="flyout fixed inset-y-0 right-0 z-40 flex w-full max-w-aside flex-col bg-surface shadow-floating lg:border-l lg:border-line"
+    (keydown)="onKeydown($event)"
+  >
+    <header class="flex items-start gap-md p-lg">
+      <div class="min-w-0 grow">
+        <h2 class="text-body-md font-semibold text-ink">{{ t('workspace.addDocuments.title') }}</h2>
+        <p class="mt-xs text-body-sm text-ink-subtle">{{ t('workspace.addDocuments.subtitle') }}</p>
+      </div>
+      <button
+        type="button"
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+        [attr.aria-label]="t('workspace.attachmentPreview.close')"
+        (click)="close()"
+      >
+        <ui-icon name="x" [size]="16" />
+      </button>
+    </header>
+
+    <div class="min-h-0 grow overflow-y-auto px-lg pb-lg">
+      <label
+        class="flex cursor-pointer flex-col items-center rounded-xl border border-dashed px-lg py-xl text-center transition-colors"
+        [class.border-line]="!dragging()"
+        [class.border-primary]="dragging()"
+        [class.bg-surface]="!dragging()"
+        [class.bg-primary-soft]="dragging()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="dragging.set(false)"
+        (drop)="onDrop($event)"
+      >
+        <ui-icon name="paperclip" [size]="24" class="text-ink-muted" />
+        <span class="mt-md text-body-md font-semibold text-ink">{{ t('workspace.setup.drop') }}</span>
+        <span class="mt-xs text-body-sm text-ink-muted">{{ t('workspace.setup.dropHint') }}</span>
+
+        <span class="mt-lg" uiButton="secondary" size="sm">{{ t('workspace.setup.browse') }}</span>
+        <input type="file" multiple class="sr-only" (change)="onFiles($event)" />
+      </label>
+
+      @if (staged().length) {
+        <ul class="mt-lg flex flex-col gap-sm">
+          @for (file of staged(); track file) {
+            <li
+              class="flex items-center gap-sm rounded-lg border border-line bg-surface-raised px-md py-sm text-body-sm text-ink"
+            >
+              <ui-icon name="file-text" [size]="14" class="shrink-0 text-ink-subtle" />
+              <span class="min-w-0 grow truncate">{{ file.name }}</span>
+              <button
+                type="button"
+                class="shrink-0 text-ink-subtle transition-colors hover:text-danger"
+                [attr.aria-label]="t('workspace.attachments.remove', { name: file.name })"
+                (click)="removeStaged(file)"
+              >
+                <ui-icon name="x" [size]="14" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <footer class="flex items-center gap-md p-lg">
+      <button type="button" uiButton [disabled]="!staged().length" (click)="upload()">
+        {{ t('workspace.addDocuments.upload', { count: staged().length }) }}
+      </button>
+      <button type="button" uiButton="ghost" (click)="close()">
+        {{ t('workspace.setup.skip') }}
+      </button>
+    </footer>
+  </aside>
+}

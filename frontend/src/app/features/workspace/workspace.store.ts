@@ -191,6 +191,17 @@ export class WorkspaceStore {
     this.memoryPanelOpen.update((open) => !open);
   }
 
+  /** Popup « Ajouter des documents », accessible depuis le topbar à tout moment (pas seulement à l'onboarding). */
+  readonly addDocumentsOpen = signal(false);
+
+  openAddDocuments(): void {
+    this.addDocumentsOpen.set(true);
+  }
+
+  closeAddDocuments(): void {
+    this.addDocumentsOpen.set(false);
+  }
+
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       this.realtime.disconnect();
@@ -305,6 +316,18 @@ export class WorkspaceStore {
     if (files.length === 0 || this.isIndexing()) return;
     this.stagedFiles.push(...files);
     this.documentCount.update((total) => total + files.length);
+  }
+
+  /**
+   * Ajout de documents une fois l'espace déjà en route (popup « Ajouter des
+   * documents », voir add-documents-dialog) — même ingestion réelle que
+   * l'onboarding (runRealIngest), juste sans passer par `initialise()`.
+   */
+  uploadDocuments(files: readonly File[]): void {
+    if (files.length === 0) return;
+    this.closeAddDocuments();
+    this.documentCount.update((total) => total + files.length);
+    void this.runRealIngest([...files]);
   }
 
   /**

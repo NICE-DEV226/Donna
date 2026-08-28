@@ -325,7 +325,8 @@
         "indexing": "Indexing company memory",
         "progress": "{{count}} documents processed",
         "done": "Your workspace is ready.",
-        "announce": "DONNA: {{step}}"
+        "announce": "DONNA: {{step}}",
+        "collapse": "Dismiss"
       }
     },
     "research": {
@@ -396,6 +397,11 @@
       "loading": "Loading preview…",
       "error": "Couldn't load this file.",
       "unsupported": "No preview available for this file type."
+    },
+    "addDocuments": {
+      "title": "Add documents",
+      "subtitle": "They join the company's memory — DONNA indexes them in the background.",
+      "upload": "Upload {{count}} document(s)"
     },
     "memory": {
       "saved": "Saved to company memory",

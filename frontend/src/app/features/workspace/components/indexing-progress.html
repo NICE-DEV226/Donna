@@ -7,7 +7,17 @@
   >
       <header class="mb-lg flex items-center justify-between gap-md">
         <h2 class="text-body-md font-semibold text-ink">{{ t('workspace.setup.indexing.title') }}</h2>
-        <span class="size-2 shrink-0 animate-pulse rounded-full bg-success" aria-hidden="true"></span>
+        <div class="flex shrink-0 items-center gap-sm">
+          <span class="size-2 animate-pulse rounded-full bg-success" aria-hidden="true"></span>
+          <button
+            type="button"
+            class="flex size-6 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-sunken hover:text-ink"
+            [attr.aria-label]="t('workspace.setup.indexing.collapse')"
+            (click)="store.toggleMemoryPanel()"
+          >
+            <ui-icon name="x" [size]="12" />
+          </button>
+        </div>
       </header>
 
       <!-- Le filet vertical relie les pastilles : il court derrière elles. -->

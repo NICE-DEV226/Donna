@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AddDocumentsDialog } from './components/add-documents-dialog';
 import { AttachmentPreview } from './components/attachment-preview';
 import { DocumentPreview } from './components/document-preview';
 import { IndexingProgress } from './components/indexing-progress';
@@ -16,6 +17,7 @@ import { WorkspaceStore } from './workspace.store';
   providers: [WorkspaceStore],
   imports: [
     RouterOutlet,
+    AddDocumentsDialog,
     AttachmentPreview,
     DocumentPreview,
     IndexingProgress,
@@ -42,29 +44,28 @@ import { WorkspaceStore } from './workspace.store';
           </main>
 
           <!--
-            Le rail droit montre l'indexation quand elle tourne — un tiroir
-            FLOTTANT (fixed), pas une colonne qui rétrécit la conversation :
-            replié d'un clic, sans jamais faire bouger le reste de la mise en
-            page.
+            L'indexation flotte au-dessus du contenu — une carte, pas un
+            tiroir plein écran : aucun fond propre sur ce conteneur, la carte
+            à l'intérieur (indexing-progress) porte déjà son propre fond et
+            son ombre. Repliable d'un clic, sans jamais faire bouger le reste
+            de la mise en page.
           -->
           @if (store.isIndexing()) {
-            <button
-              type="button"
-              class="fixed top-1/2 z-30 flex h-16 w-6 -translate-y-1/2 items-center justify-center rounded-l-lg border border-r-0 border-line bg-surface text-ink-muted shadow-floating transition-[right] duration-200 hover:text-primary"
-              [style.right]="store.memoryPanelOpen() ? '20rem' : '0'"
-              [attr.aria-label]="store.memoryPanelOpen() ? 'Collapse panel' : 'Expand panel'"
-              [attr.aria-expanded]="store.memoryPanelOpen()"
-              (click)="store.toggleMemoryPanel()"
-            >
-              <ui-icon [name]="store.memoryPanelOpen() ? 'chevron-right' : 'chevron-left'" [size]="14" />
-            </button>
-
             @if (store.memoryPanelOpen()) {
-              <aside
-                class="fixed inset-y-0 right-0 z-20 flex w-80 flex-col gap-xl overflow-y-auto border-l border-line bg-surface-sunken p-lg shadow-floating"
-              >
+              <div class="fixed top-20 right-lg z-20 w-80">
                 <indexing-progress />
-              </aside>
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="fixed top-20 right-lg z-20 flex h-10 items-center gap-sm rounded-full border border-line bg-surface px-md text-body-sm text-ink-muted shadow-floating transition-colors hover:text-primary"
+                [attr.aria-label]="'Expand panel'"
+                [attr.aria-expanded]="false"
+                (click)="store.toggleMemoryPanel()"
+              >
+                <span class="size-2 animate-pulse rounded-full bg-success" aria-hidden="true"></span>
+                <ui-icon name="chevron-left" [size]="14" />
+              </button>
             }
           }
         </div>
@@ -77,8 +78,13 @@ import { WorkspaceStore } from './workspace.store';
     <!-- Aperçu d'une pièce jointe (générée ou envoyée), même logique. -->
     <attachment-preview />
 
+    <!-- Popup « Ajouter des documents », déclenché depuis le topbar. -->
+    <add-documents-dialog />
+
     <!-- Notifications : elles informent, elles n'interrompent pas. -->
-    <toast-stack [shifted]="!!store.openSource() || !!store.openAttachment()" />
+    <toast-stack
+      [shifted]="!!store.openSource() || !!store.openAttachment() || store.addDocumentsOpen()"
+    />
   `,
 })
 export class WorkspacePage {

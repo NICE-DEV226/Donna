@@ -325,7 +325,8 @@
         "indexing": "Indexation de la mémoire",
         "progress": "{{count}} documents traités",
         "done": "Votre espace est prêt.",
-        "announce": "DONNA : {{step}}"
+        "announce": "DONNA : {{step}}",
+        "collapse": "Masquer"
       }
     },
     "research": {
@@ -396,6 +397,11 @@
       "loading": "Chargement de l'aperçu…",
       "error": "Impossible de charger ce fichier.",
       "unsupported": "Aucun aperçu disponible pour ce type de fichier."
+    },
+    "addDocuments": {
+      "title": "Ajouter des documents",
+      "subtitle": "Ils rejoignent la mémoire de l'entreprise — DONNA les indexe en arrière-plan.",
+      "upload": "Envoyer {{count}} document(s)"
     },
     "memory": {
       "saved": "Enregistré dans la mémoire de l'entreprise",

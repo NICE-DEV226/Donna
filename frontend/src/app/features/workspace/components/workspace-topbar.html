@@ -6,6 +6,17 @@
 
   <language-switch />
 
+  <!-- Ajouter des documents à tout moment, pas seulement à l'onboarding. -->
+  <button
+    type="button"
+    class="flex size-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-sunken hover:text-primary"
+    [attr.aria-label]="t('workspace.addDocuments.title')"
+    [attr.title]="t('workspace.addDocuments.title')"
+    (click)="store.openAddDocuments()"
+  >
+    <ui-icon name="paperclip" [size]="20" />
+  </button>
+
   <!-- La cloche redonne ce que les notifications ont dit avant de disparaître. -->
   <button
     type="button"
