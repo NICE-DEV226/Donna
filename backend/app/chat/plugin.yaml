@@ -117,6 +117,15 @@ llm:
   gemini:
     model: "gemini-flash-latest"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  # Provider vision dédié, indépendant de `provider` ci-dessus (un modèle
+  # texte-seul ne "voit" pas d'image) — laisser `provider:` vide/absent pour
+  # rester sur Ollama local pour la vision (repli par défaut, voir
+  # ProviderRouter). qwen3.6/3.8-27b sur Groq supportent vision + tools
+  # ensemble, contrairement aux modèles vision d'Ollama.
+  vision:
+    provider: "groq"   # vide/absent = Ollama local (défaut)
+    model: "qwen/qwen3.6-27b"
+    base_url: "https://api.groq.com/openai/v1"
 
 envconfiguration:
   inject: true

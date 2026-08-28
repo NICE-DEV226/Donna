@@ -1,0 +1,194 @@
+app:
+  name: .
+  env: production
+  debug: false
+  dotenv: .env
+  secret_key: "${APP_SECRET_KEY}"
+  plugin_prefix: "/app"
+  plugin_tags: []
+  server_key: "${PLUGINS_SECRET_KEY}"
+  server_key_iterations: 100000
+
+  fastapi:
+    title: "."
+    version: "0.1.0"
+    docs_url: "/docs"
+    redoc_url: "/redoc"
+    openapi_url: "/openapi.json"
+    redirect_slashes: true
+
+  server:
+    host: "0.0.0.0"
+    port: 8000
+    workers: 1
+    reload: false
+    log_level: "INFO"
+    proxy_headers: true
+    forwarded_allow_ips: "*"
+
+plugins:
+  directory: ./app
+  secret_key: "${PLUGINS_SECRET_KEY}"
+  strict_trusted: false
+  interval: 10
+  entry_point: src/main.py
+
+services:
+  databases:
+    db:
+      type: sqlasync
+      url: sqlite+aiosqlite:///data/db.sqlite3
+      echo: false
+      connect_args:
+        timeout: 30
+  cache:
+    backend: memory
+    ttl: 300
+    max_size: 1000
+
+  scheduler:
+    enabled: false
+    backend: memory
+    timezone: UTC
+
+  # REDIS_URL attendue SANS numéro de base ni slash final (ex:
+  # redis://redis:6379 ou redis://default:pass@redis-host:6379) — chaque
+  # service ajoute son propre "/N", même convention qu'en dev (voir
+  # integration.yaml : pubsub=0, xworker broker=2, xworker backend=3).
+  xworker:
+    enabled: true
+    name: donna
+    broker_url: "${REDIS_URL}/2"
+    result_backend: "${REDIS_URL}/3"
+    task_default_queue: rag
+    queues:
+      - rag
+    modules:
+      - app.rag.src.tasks
+      - app.chat.src.tasks
+
+  extensions:
+    rag:
+      module: extensions.rag.service:RagService
+      config:
+        db_url: sqlite+aiosqlite:///data/db.sqlite3
+        # Pas d'Ollama en conteneur — embeddings cloud, repli automatique
+        # et silencieux sur Ollama SEULEMENT si embed_api_key est absente
+        # (voir extensions/rag/service.py.__init__) : sans Ollama joignable
+        # ici, laisser cette clé vide casserait l'indexation, pas juste la
+        # dégraderait — RAG_EMBED_API_KEY est donc de facto requise en prod.
+        embed_provider: jina
+        embed_model: jina-embeddings-v5-text-small
+        embed_dim: 1024
+        embed_api_key: "${RAG_EMBED_API_KEY}"
+        rerank_enabled: true   # ONNX local (onnxruntime), aucune dépendance Ollama — télécharge le modèle (544 Mo) au premier appel
+    storage:
+      module: extensions.extxstorage.main:StorageService
+      config:
+        backend: local
+        max_size_mb: 25
+        allowed_extensions:
+          - .png
+          - .jpg
+          - .jpeg
+          - .gif
+          - .webp
+          - .pdf
+          - .docx
+          - .xlsx
+          - .pptx
+          - .zip
+          - .txt
+          - .md
+          - .wav
+          - .mp3
+          - .m4a
+          - .ogg
+          - .webm
+          - .flac
+        local:
+          path: data/storage
+    email:
+      module: extensions.xmailler.main:EmailService
+      config:
+        smtp_host: ${XAUTH_SMTP_HOST}
+        smtp_port: ${XAUTH_SMTP_PORT}
+        smtp_user: ${XAUTH_SMTP_USER}
+        smtp_password: ${XAUTH_SMTP_PASSWORD}
+        from_address: ${XAUTH_SMTP_FROM}
+        from_name: ${XAUTH_SMTP_FROM_NAME}
+        use_tls: ${XAUTH_SMTP_USE_TLS}
+        timeout: 10
+        max_retries: 3
+        queue_size: 100
+    pubsub:
+      module: extensions.extpubsub.service:PubSubClient
+      config:
+        provider: redis
+        redis:
+          url: "${REDIS_URL}/0"
+          heartbeat: 0.01
+          max_connections: 100
+    websocket:
+      module: extensions.xwebsocket.main:WsManager
+      config:
+        channel:
+          - user
+          - admin
+          - broadcast
+          - platform
+    google:
+      module: extensions.google_service.service:GoogleServiceClient
+      config:
+        timeout: 10
+    # mcp_bridge (création de documents Word/Excel/PDF) volontairement
+    # absente ici : ces serveurs vivent hors du repo, à des chemins locaux
+    # (/home/.../bots/mcp/...) qui n'existent pas dans l'image — get_service
+    # échoue proprement (try/except déjà en place dans app/chat/src/main.py),
+    # ces outils sont juste indisponibles en conteneur. À bundler dans
+    # l'image plus tard si besoin, pas fait pour l'instant (décision produit).
+
+observability:
+  logging:
+    level: INFO
+    format: "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+    file: log/app.log
+    max_bytes: 10485760
+    backup_count: 5
+  metrics:
+    enabled: false
+    backend: memory
+    prefix: .
+  tracing:
+    enabled: false
+    backend: noop
+    service_name: .
+    endpoint: null
+
+security:
+  allowed_imports:
+    - fastapi
+    - json
+    - re
+    - math
+    - datetime
+    - typing
+    - dataclasses
+    - enum
+    - functools
+    - collections
+    - hashlib
+    - base64
+    - asyncio
+    - logging
+    - uuid
+    - pydantic
+  forbidden_imports: []
+  rate_limit_default:
+    calls: 100
+    period_seconds: 60
+
+marketplace:
+  url: "https://marketplace.xcorehub.dev"
+  timeout: 10
+  cache_ttl: 300

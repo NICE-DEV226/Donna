@@ -17,6 +17,23 @@ Configuration dans integration.yaml :
           ollama_base_url: http://localhost:11434
           embed_model: nomic-embed-text
           embed_dim: 768
+
+    Sans Ollama accessible (hébergement backend seul, par exemple) :
+        config:
+          embed_provider: gemini   # ollama (défaut) | gemini | jina
+          embed_model: gemini-embedding-001        # ou jina-embeddings-v5-text-small
+          embed_dim: 3072                          # jina-embeddings-v5-text-small : 1024
+          embed_api_key: ${RAG_EMBED_API_KEY_GEMINI}  # ou ${RAG_EMBED_API_KEY_JINA}
+          # embed_base_url par défaut déjà correcte pour gemini/jina, inutile de la fixer
+
+    embed_api_key absente avec embed_provider != ollama : repli automatique
+    et silencieux (loggé) sur Ollama local — jamais de crash au démarrage
+    faute de clé cloud configurée.
+
+    ⚠️ embed_dim est figé dans le schéma de la table vectorielle à la
+    création (rag_vec) — changer de provider/dimension sur une base déjà
+    indexée casse la recherche (vieux vecteurs, nouvelle dimension). Base
+    fraîche ou ré-indexation complète requises après un changement.
 """
 
 from __future__ import annotations
@@ -89,6 +106,29 @@ class RagService(BaseService):
         self._embed_model = self._cfg.get("embed_model", "nomic-embed-text")
         self._embed_dim = int(self._cfg.get("embed_dim", 768))
         self._ollama_base_url = self._cfg.get("ollama_base_url", "http://localhost:11434")
+        # Fournisseur d'embeddings : "ollama" (défaut, local) ou tout
+        # provider exposant une API compatible OpenAI /embeddings (ex:
+        # gemini) — voir docstring de module pour la config complète.
+        self._embed_provider = self._cfg.get("embed_provider", "ollama")
+        self._embed_api_key = self._cfg.get("embed_api_key")
+        # Repli automatique : un provider cloud demandé sans clé configurée
+        # ne doit jamais faire planter le service — reste sur Ollama local,
+        # comme les providers LLM du plugin chat (même philosophie de
+        # dégradation propre partout dans ce projet).
+        if self._embed_provider != "ollama" and not self._embed_api_key:
+            logger.warning(
+                "embed_provider=%s mais embed_api_key absente — repli sur ollama pour les embeddings.",
+                self._embed_provider,
+            )
+            self._embed_provider = "ollama"
+        default_embed_base_urls = {
+            "ollama": self._ollama_base_url,
+            "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "jina": "https://api.jina.ai/v1",
+        }
+        self._embed_base_url = self._cfg.get(
+            "embed_base_url", default_embed_base_urls.get(self._embed_provider, self._ollama_base_url)
+        )
         self._rerank_enabled = bool(self._cfg.get("rerank_enabled", True))
         self._engine = None
         self._http: httpx.AsyncClient | None = None
@@ -110,7 +150,10 @@ class RagService(BaseService):
 
             dbapi_conn.run_async(_do_load)
 
-        self._http = httpx.AsyncClient(base_url=self._ollama_base_url, timeout=60.0)
+        headers = {}
+        if self._embed_provider != "ollama" and self._embed_api_key:
+            headers["Authorization"] = f"Bearer {self._embed_api_key}"
+        self._http = httpx.AsyncClient(base_url=self._embed_base_url, timeout=60.0, headers=headers)
 
         async with self._engine.begin() as conn:
             await conn.execute(
@@ -203,12 +246,19 @@ class RagService(BaseService):
     # ── Embeddings ───────────────────────────────────────────
 
     async def embed(self, content: str) -> list[float]:
+        if self._embed_provider == "ollama":
+            resp = await self._http.post(
+                "/api/embed", json={"model": self._embed_model, "input": content}
+            )
+            resp.raise_for_status()
+            return resp.json()["embeddings"][0]
+
+        # Provider OpenAI-compatible (ex: gemini) — endpoint /embeddings standard.
         resp = await self._http.post(
-            "/api/embed", json={"model": self._embed_model, "input": content}
+            "/embeddings", json={"model": self._embed_model, "input": content}
         )
         resp.raise_for_status()
-        data = resp.json()
-        return data["embeddings"][0]
+        return resp.json()["data"][0]["embedding"]
 
     # ── Ingestion ────────────────────────────────────────────
 

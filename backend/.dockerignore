@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.xcore/
+data/
+log/
+*.pem
+.env
+app/chat/.env
+app/xauth/.env
+.git/
+.pytest_cache/
+*.egg-info/

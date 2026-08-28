@@ -50,7 +50,10 @@ class Plugin(AutoDispatchMixin, TrustedBase):
         llm_provider_name = cfg.get("llm", {}).get("provider", "ollama")
         default_provider = self._build_default_provider(cfg, env, system_prompt)
         active_name = llm_provider_name if default_provider else "ollama"
-        self._provider_router = ProviderRouter(self._ollama, default_provider, default_name=active_name)
+        vision_provider = self._build_vision_provider(cfg, env, system_prompt)
+        self._provider_router = ProviderRouter(
+            self._ollama, default_provider, default_name=active_name, vision_provider=vision_provider
+        )
 
         # Fermé sur cfg/env/system_prompt — permet de reconstruire un
         # provider par son seul nom, à la demande (voir POST
@@ -81,7 +84,8 @@ class Plugin(AutoDispatchMixin, TrustedBase):
             )
         )
 
-        logger.info("chat plugin prêt — génération=%s, vision/embed=ollama", active_name)
+        vision_name = "groq" if vision_provider else "ollama"
+        logger.info("chat plugin prêt — génération=%s, vision=%s, embed=ollama", active_name, vision_name)
 
     def _build_default_provider(
         self, cfg: dict, env: dict, system_prompt: str | None, provider_name: str | None = None
@@ -177,6 +181,39 @@ class Plugin(AutoDispatchMixin, TrustedBase):
                 timeout=timeout,
             )
 
+        return None
+
+    def _build_vision_provider(self, cfg: dict, env: dict, system_prompt: str | None):
+        """
+        Provider vision dédié, indépendant du provider texte par défaut — un
+        modèle texte-seul (ex: openai/gpt-oss-120b sur Groq) ne "voit" pas
+        d'image, il faut un modèle spécifiquement multimodal. Retourne None
+        (repli Ollama, voir ProviderRouter) si non configuré ou clé absente.
+
+        Vérifié en pratique (2026-08) : qwen/qwen3.6-27b et qwen/qwen3.8-27b
+        sur Groq supportent à la fois vision ET tool-calling — contrairement
+        aux modèles vision d'Ollama qui refusent tools+vision ensemble.
+        """
+        vision_cfg = cfg.get("llm", {}).get("vision", {})
+        provider_name = vision_cfg.get("provider")
+        if not provider_name:
+            return None
+        timeout = float(cfg.get("llm", {}).get("timeout_seconds", 30))
+
+        if provider_name == "groq":
+            api_key = env.get("GROQ_API_KEY")
+            if not api_key:
+                logger.warning("llm.vision.provider=groq mais GROQ_API_KEY absente — repli Ollama pour la vision.")
+                return None
+            return OpenAICompatProvider(
+                api_key=api_key,
+                model=vision_cfg.get("model", "qwen/qwen3.6-27b"),
+                base_url=vision_cfg.get("base_url", "https://api.groq.com/openai/v1"),
+                system_prompt=system_prompt,
+                timeout=timeout,
+            )
+
+        logger.warning("llm.vision.provider=%s inconnu — repli Ollama pour la vision.", provider_name)
         return None
 
     async def on_unload(self) -> None:

@@ -1,0 +1,68 @@
+# Stack complète (api + worker + redis) — utilisable telle quelle en local
+# ou comme référence pour un déploiement Dokploy "Docker Compose". Si tu
+# préfères deux applications Dokploy "Dockerfile" séparées pointant sur la
+# même image, voir DEPLOY.md pour la commande worker exacte à coller dans
+# "Start Command" — ce fichier n'est alors qu'une documentation vivante,
+# pas un prérequis.
+#
+# api et worker partagent volontairement le même volume `data/` (SQLite,
+# storage, mcp_documents) : le worker écrit les statuts d'ingestion/rappels
+# dans la même base que l'API les lit.
+
+services:
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - donna_data:/app/data
+      - donna_log:/app/log
+
+  worker:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379
+    env_file: .env
+    # Même image que api, commande différente — CMD écrasé, ENTRYPOINT
+    # (docker-entrypoint.sh : reconstruction .env, clés JWT, attente Redis)
+    # reste identique et s'exécute pareil pour les deux services.
+    command:
+      [
+        "celery",
+        "-A", "xcore.services.xworker.xworker:_celery_worker",
+        "worker",
+        "--loglevel", "INFO",
+        "-Q", "rag",
+        "--concurrency", "4",
+        "-n", "donna-rag-worker@%h",
+      ]
+    volumes:
+      - donna_data:/app/data
+      - donna_log:/app/log
+
+volumes:
+  redis_data:
+  donna_data:
+  donna_log:

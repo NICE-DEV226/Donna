@@ -1018,11 +1018,11 @@ async def run_chat_with_tools(
     finale, qui est ce que cette fonction retourne."""
     ctx.reference_now = datetime.now().astimezone()
     turns = [_build_tools_hint(ctx.reference_now), *messages]
-    # Ollama refuse catégoriquement (400 "does not support tools") le
-    # tool-calling sur ses modèles vision, quelle que soit leur taille —
-    # confirmé en pratique sur qwen2.5vl:3b. Une image dans le tour désactive
-    # donc les tools entièrement pour cet appel, plutôt que de planter.
-    tools = None if images_b64 else _effective_tools(ctx)
+    # Le router (voir providers/router.py) sait déjà router une image vers
+    # un provider vision qui supporte les tools s'il est configuré, et
+    # désactive lui-même tools sur un repli Ollama (seul cas où tools+vision
+    # est structurellement impossible) — pas besoin de le désactiver ici.
+    tools = _effective_tools(ctx)
     # Une fois basculé sur Ollama (cloud indisponible), on y reste pour le
     # reste de CE tour de conversation — pas de shared state sur le router
     # (concurrence entre requêtes), juste une variable locale à cet appel.
@@ -1064,11 +1064,11 @@ async def run_chat_stream_with_tools(
     fois exécuté."""
     ctx.reference_now = datetime.now().astimezone()
     turns = [_build_tools_hint(ctx.reference_now), *messages]
-    # Ollama refuse catégoriquement (400 "does not support tools") le
-    # tool-calling sur ses modèles vision, quelle que soit leur taille —
-    # confirmé en pratique sur qwen2.5vl:3b. Une image dans le tour désactive
-    # donc les tools entièrement pour cet appel, plutôt que de planter.
-    tools = None if images_b64 else _effective_tools(ctx)
+    # Le router (voir providers/router.py) sait déjà router une image vers
+    # un provider vision qui supporte les tools s'il est configuré, et
+    # désactive lui-même tools sur un repli Ollama (seul cas où tools+vision
+    # est structurellement impossible) — pas besoin de le désactiver ici.
+    tools = _effective_tools(ctx)
     # Cf. run_chat_with_tools : une fois basculé sur Ollama dans ce tour, on y
     # reste plutôt que retenter le cloud (et son rate limit) à chaque round.
     force_ollama = False

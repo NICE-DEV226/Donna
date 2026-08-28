@@ -40,6 +40,29 @@ class OpenAICompatProvider:
             full_messages = [{"role": "system", "content": self._system_prompt}, *full_messages]
         return full_messages
 
+    @staticmethod
+    def _inject_images(messages: list[dict], images_b64: list[str] | None) -> list[dict]:
+        """Convertit le dernier tour utilisateur en contenu multipart
+        (format OpenAI vision) — cherche en partant de la fin le dernier
+        message role=user dont le contenu est encore une simple string (pas
+        déjà transformé) : sur un tour d'appels d'outils à plusieurs manches,
+        les manches suivantes rappellent avec les MÊMES images_b64 (voir
+        tools.py) — sans ce garde-fou, la 2e manche retransformerait le
+        même message (déjà une liste, pas une string) ou pire, remonterait
+        à tort jusqu'à un ancien tour de l'historique."""
+        if not images_b64:
+            return messages
+        for i in range(len(messages) - 1, -1, -1):
+            msg = messages[i]
+            if msg.get("role") == "user" and isinstance(msg.get("content"), str):
+                text = msg["content"]
+                parts: list[dict] = ([{"type": "text", "text": text}] if text else []) + [
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}}
+                    for img in images_b64
+                ]
+                return [*messages[:i], {**msg, "content": parts}, *messages[i + 1 :]]
+        return messages
+
     async def chat(
         self,
         messages: list[dict[str, str]],
@@ -47,7 +70,8 @@ class OpenAICompatProvider:
     ) -> str:
         try:
             response = await self._client.chat.completions.create(
-                model=self._model, messages=self._build_messages(messages)
+                model=self._model,
+                messages=self._inject_images(self._build_messages(messages), images_b64),
             )
         except openai.RateLimitError as exc:
             raise ProviderUnavailableError(
@@ -81,7 +105,9 @@ class OpenAICompatProvider:
     ) -> AsyncIterator[str]:
         try:
             stream = await self._client.chat.completions.create(
-                model=self._model, messages=self._build_messages(messages), stream=True
+                model=self._model,
+                messages=self._inject_images(self._build_messages(messages), images_b64),
+                stream=True,
             )
             async for chunk in stream:
                 delta = chunk.choices[0].delta.content if chunk.choices else None
@@ -161,10 +187,10 @@ class OpenAICompatProvider:
     async def chat_with_tools(
         self, messages: list[dict[str, str]], tools: list[dict] | None = None, images_b64=None
     ) -> dict:
-        kwargs: dict = {
-            "model": self._model,
-            "messages": self._to_wire_messages(self._build_messages(messages)),
-        }
+        wire_messages = self._inject_images(
+            self._to_wire_messages(self._build_messages(messages)), images_b64
+        )
+        kwargs: dict = {"model": self._model, "messages": wire_messages}
         if tools:
             kwargs["tools"] = tools
 
@@ -194,11 +220,10 @@ class OpenAICompatProvider:
     async def chat_stream_with_tools(
         self, messages: list[dict[str, str]], tools: list[dict] | None = None, images_b64=None
     ) -> AsyncIterator[dict]:
-        kwargs: dict = {
-            "model": self._model,
-            "messages": self._to_wire_messages(self._build_messages(messages)),
-            "stream": True,
-        }
+        wire_messages = self._inject_images(
+            self._to_wire_messages(self._build_messages(messages)), images_b64
+        )
+        kwargs: dict = {"model": self._model, "messages": wire_messages, "stream": True}
         if tools:
             kwargs["tools"] = tools
 

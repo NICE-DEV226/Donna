@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket
@@ -6,7 +7,10 @@ from xcore import Xcore
 from extensions.xwebsocket.main import WsManager
 
 
-xcore = Xcore(config_path="integration.yaml")
+# XCORE_CONFIG_PATH : voir integration.docker.yaml (variante sans Ollama,
+# utilisée en conteneur — voir Dockerfile/docker-entrypoint.sh). Absent en
+# dev, où integration.yaml (le fichier par défaut) reste utilisé tel quel.
+xcore = Xcore(config_path=os.environ.get("XCORE_CONFIG_PATH", "integration.yaml"))
 
 
 @asynccontextmanager
@@ -24,14 +28,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Le frontend Angular (ng serve, :4200) tourne sur une origine distincte du
-# backend (:8000) — sans ça, le navigateur bloque tout (curl ne le voit
-# jamais, seul un vrai navigateur applique CORS). allow_credentials=True
-# nécessaire pour l'en-tête Authorization ; True + wildcard "*" est interdit
-# par la spec, d'où une liste explicite plutôt que allow_origins=["*"].
+# Le frontend Angular (ng serve, :4200 en dev) tourne sur une origine
+# distincte du backend (:8000) — sans ça, le navigateur bloque tout (curl ne
+# le voit jamais, seul un vrai navigateur applique CORS). allow_credentials
+# =True nécessaire pour l'en-tête Authorization ; True + wildcard "*" est
+# interdit par la spec, d'où une liste explicite plutôt que allow_origins=["*"].
+# ALLOWED_ORIGINS (CSV) permet de pointer vers le vrai domaine en prod, sans
+# retoucher le code — absente, on reste sur le défaut dev.
+_allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:4200").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    allow_origins=[o.strip() for o in _allowed_origins if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -11,17 +11,28 @@ logger = get_logger("chat.providers.router")
 
 class ProviderRouter:
     """
-    Routage par tâche : la vision (images) reste sur Ollama local (seul
-    provider câblé pour ça ici) ; le texte pur part vers le provider cloud
-    configuré par défaut s'il y en a un, sinon reste sur Ollama.
+    Routage par tâche :
+    - texte pur : provider cloud configuré par défaut s'il y en a un, sinon Ollama.
+    - vision (images) : provider vision dédié s'il est configuré (ex: un
+      modèle Groq différent du modèle texte par défaut — nécessaire, un
+      modèle texte-seul ne "voit" rien), sinon repli sur Ollama local.
+      Ollama refuse catégoriquement le tool-calling sur ses modèles vision
+      (confirmé en pratique sur qwen2.5vl:3b, 400 "does not support tools") :
+      un repli vers Ollama désactive donc toujours les tools, même si
+      l'appelant en avait demandé.
     """
 
     def __init__(
-        self, ollama_provider: Any, default_provider: Any | None = None, default_name: str = "ollama"
+        self,
+        ollama_provider: Any,
+        default_provider: Any | None = None,
+        default_name: str = "ollama",
+        vision_provider: Any | None = None,
     ) -> None:
         self._ollama = ollama_provider
         self._default = default_provider
         self._default_name = default_name
+        self._vision = vision_provider
 
     @property
     def ollama(self) -> Any:
@@ -57,7 +68,22 @@ class ProviderRouter:
         retenter le cloud (et de reprendre un rate limit en pleine figure) à
         chaque round alors qu'on sait déjà qu'il est indisponible.
         """
-        if images_b64 or self._default is None or force_ollama:
+        if images_b64 and not force_ollama:
+            provider = self._vision or self._ollama
+            try:
+                return await provider.chat_with_tools(messages, tools=tools, images_b64=images_b64)
+            except ProviderUnavailableError as exc:
+                if provider is self._ollama:
+                    raise
+                logger.warning("repli vision vers Ollama (provider vision indisponible) : %s", exc)
+                # Ollama ne fait jamais tools+vision ensemble (voir docstring
+                # de classe) — le repli force donc tools=None, pas ce que
+                # l'appelant avait demandé.
+                result = await self._ollama.chat_with_tools(messages, tools=None, images_b64=images_b64)
+                result["fell_back_to_ollama"] = True
+                return result
+
+        if self._default is None or force_ollama:
             return await self._ollama.chat_with_tools(messages, tools=tools, images_b64=images_b64)
         try:
             return await self._default.chat_with_tools(messages, tools=tools)
@@ -79,7 +105,44 @@ class ProviderRouter:
         images_b64: list[str] | None = None,
         force_ollama: bool = False,
     ) -> AsyncIterator[dict]:
-        if images_b64 or self._default is None or force_ollama:
+        if images_b64 and not force_ollama:
+            provider = self._vision or self._ollama
+            if provider is self._ollama:
+                async for event in self._ollama.chat_stream_with_tools(
+                    messages, tools=tools, images_b64=images_b64
+                ):
+                    yield event
+                return
+
+            produced_output = False
+            fallback_reason: str | None = None
+            try:
+                async for event in provider.chat_stream_with_tools(
+                    messages, tools=tools, images_b64=images_b64
+                ):
+                    produced_output = True
+                    yield event
+                return
+            except ProviderUnavailableError as exc:
+                if produced_output:
+                    raise
+                fallback_reason = str(exc)
+                logger.warning("repli vision vers Ollama (provider vision indisponible) : %s", exc)
+
+            yield {
+                "type": "provider_fallback",
+                "from": "vision",
+                "to": "ollama",
+                "reason": fallback_reason,
+            }
+            # Ollama ne fait jamais tools+vision ensemble (voir docstring de classe).
+            async for event in self._ollama.chat_stream_with_tools(
+                messages, tools=None, images_b64=images_b64
+            ):
+                yield event
+            return
+
+        if self._default is None or force_ollama:
             async for event in self._ollama.chat_stream_with_tools(
                 messages, tools=tools, images_b64=images_b64
             ):
@@ -87,7 +150,7 @@ class ProviderRouter:
             return
 
         produced_output = False
-        fallback_reason: str | None = None
+        fallback_reason = None
         try:
             async for event in self._default.chat_stream_with_tools(messages, tools=tools):
                 produced_output = True
