@@ -3,10 +3,10 @@ app:
   env: production
   debug: false
   dotenv: .env
-  secret_key: "${APP_SECRET_KEY}"
+  secret_key: "${SECRET_KEY}"
   plugin_prefix: "/app"
   plugin_tags: []
-  server_key: "${PLUGINS_SECRET_KEY}"
+  server_key: "${SERVER_KEY}"
   server_key_iterations: 100000
 
   fastapi:
@@ -28,7 +28,7 @@ app:
 
 plugins:
   directory: ./app
-  secret_key: "${PLUGINS_SECRET_KEY}"
+  secret_key: "${SERVER_KEY}"
   strict_trusted: false
   interval: 10
   entry_point: src/main.py
@@ -51,15 +51,17 @@ services:
     backend: memory
     timezone: UTC
 
-  # REDIS_URL attendue SANS numéro de base ni slash final (ex:
-  # redis://redis:6379 ou redis://default:pass@redis-host:6379) — chaque
-  # service ajoute son propre "/N", même convention qu'en dev (voir
-  # integration.yaml : pubsub=0, xworker broker=2, xworker backend=3).
+  # PUBSUB_REDIS_URL (déjà configurée dans Dokploy, Redis managé) se
+  # termine par un slash final SANS numéro de base
+  # (redis://user:pass@host:6379/) — chaque service ajoute juste le chiffre
+  # après, pas de "/" supplémentaire. Même convention qu'en dev
+  # (integration.yaml : pubsub=0, xworker broker=2, xworker backend=3),
+  # une seule variable Redis ici au lieu de trois côté dev.
   xworker:
     enabled: true
     name: donna
-    broker_url: "${REDIS_URL}/2"
-    result_backend: "${REDIS_URL}/3"
+    broker_url: "${PUBSUB_REDIS_URL}2"
+    result_backend: "${PUBSUB_REDIS_URL}3"
     task_default_queue: rag
     queues:
       - rag
@@ -76,11 +78,14 @@ services:
         # et silencieux sur Ollama SEULEMENT si embed_api_key est absente
         # (voir extensions/rag/service.py.__init__) : sans Ollama joignable
         # ici, laisser cette clé vide casserait l'indexation, pas juste la
-        # dégraderait — RAG_EMBED_API_KEY est donc de facto requise en prod.
+        # dégraderait — RAG_EMBED_API_KEY_JINA est donc de facto requise en
+        # prod (RAG_EMBED_API_KEY_GEMINI existe aussi côté Dokploy — pour
+        # basculer sur gemini : embed_provider: gemini +
+        # embed_api_key: "${RAG_EMBED_API_KEY_GEMINI}" + embed_dim: 3072).
         embed_provider: jina
         embed_model: jina-embeddings-v5-text-small
         embed_dim: 1024
-        embed_api_key: "${RAG_EMBED_API_KEY}"
+        embed_api_key: "${RAG_EMBED_API_KEY_JINA}"
         rerank_enabled: true   # ONNX local (onnxruntime), aucune dépendance Ollama — télécharge le modèle (544 Mo) au premier appel
     storage:
       module: extensions.extxstorage.main:StorageService
@@ -126,7 +131,7 @@ services:
       config:
         provider: redis
         redis:
-          url: "${REDIS_URL}/0"
+          url: "${PUBSUB_REDIS_URL}0"
           heartbeat: 0.01
           max_connections: 100
     websocket:
