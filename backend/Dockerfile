@@ -8,7 +8,17 @@ FROM python:3.14-slim
 # premier démarrage (voir docker-entrypoint.sh). curl : healthcheck.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    openssl \
+    libffi-dev \
+    libssl-dev \
+    pkg-config \
+    # psycopg2 (transitif : xcore-market -> xcoreruntime -> psycopg2) compile
+    # depuis les sources — nécessite pg_config + les headers client Postgres,
+    # même si vous n'utilisez pas Postgres (MariaDB/MySQL via aiomysql, par
+    # ex.) : c'est une dépendance du framework xcoreruntime, pas optionnelle.
+    libpq-dev \
+    # curl : uniquement pour télécharger le .deb de xcore-agent ci-dessous
+    # (le binaire, pas son exécution — voir plus bas) — ce stage ne finit
+    # de toute façon jamais dans l'image finale.
     curl \
     && rm -rf /var/lib/apt/lists/*
 
