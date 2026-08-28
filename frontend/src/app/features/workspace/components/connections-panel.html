@@ -1,0 +1,40 @@
+<section *transloco="let t">
+  <h2 class="mb-md text-label-caps uppercase text-ink-muted">
+    {{ t('workspace.connections.title') }}
+  </h2>
+
+  <ul class="flex flex-col gap-xs">
+    @for (connection of store.connections(); track connection.key) {
+      <li>
+        <!-- Cliquer coupe vraiment l'accès : c'est la promesse du produit. -->
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-sm rounded-lg p-sm text-left transition-colors hover:bg-surface-sunken"
+          [class.opacity-60]="!connection.connected"
+          [attr.aria-pressed]="connection.connected"
+          (click)="store.toggleConnection(connection.key)"
+        >
+          <span class="flex items-center gap-sm">
+            <ui-icon [name]="icon(connection.icon)" [size]="18" class="text-ink-muted" />
+            <span class="text-body-sm text-ink">
+              {{ t('workspace.connections.' + connection.key) }}
+            </span>
+          </span>
+
+          <!-- La pastille porte son sens dans le texte, pas seulement dans la couleur. -->
+          <span
+            class="size-2 shrink-0 rounded-full"
+            [class.bg-success]="connection.connected"
+            [class.bg-line-strong]="!connection.connected"
+            [attr.aria-label]="
+              connection.connected
+                ? t('workspace.connections.connected')
+                : t('workspace.connections.disconnected')
+            "
+            role="img"
+          ></span>
+        </button>
+      </li>
+    }
+  </ul>
+</section>

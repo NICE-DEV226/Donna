@@ -1,0 +1,88 @@
+@if (store.openAttachment(); as attachment) {
+  <!-- Même traitement que document-preview : panneau latéral, focus piégé, Échap pour fermer. -->
+  <aside
+    *transloco="let t"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    role="dialog"
+    [attr.aria-label]="attachment.original_name"
+    class="flyout fixed inset-y-0 right-0 z-40 flex w-full max-w-aside flex-col bg-surface shadow-floating lg:border-l lg:border-line"
+    (keydown)="onKeydown($event)"
+  >
+    <header class="flex items-start gap-md p-lg">
+      <ui-icon name="file-text" [size]="18" class="mt-xs shrink-0 text-ink-muted" />
+      <div class="min-w-0 grow">
+        <h2 class="truncate text-body-md font-semibold text-ink">{{ attachment.original_name }}</h2>
+      </div>
+      <button
+        type="button"
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+        [attr.aria-label]="t('workspace.attachmentPreview.close')"
+        (click)="store.closeAttachment()"
+      >
+        <ui-icon name="x" [size]="16" />
+      </button>
+    </header>
+
+    <div class="min-h-0 grow overflow-y-auto" [class.px-lg]="state().kind !== 'pdf'">
+      @switch (state().kind) {
+        @case ('loading') {
+          <div class="flex h-full flex-col items-center justify-center gap-sm text-body-sm text-ink-subtle">
+            <ui-icon name="loader-circle" [size]="20" class="animate-spin" />
+            {{ t('workspace.attachmentPreview.loading') }}
+          </div>
+        }
+        @case ('image') {
+          <img [src]="asUrl(state())" [alt]="attachment.original_name" class="w-full rounded-lg" />
+        }
+        @case ('pdf') {
+          <iframe [src]="asResourceUrl(state())" [title]="attachment.original_name" class="h-full w-full"></iframe>
+        }
+        @case ('text') {
+          <pre class="whitespace-pre-wrap break-words text-body-sm leading-relaxed text-ink-muted">{{ asText(state()) }}</pre>
+        }
+        @case ('html') {
+          <!-- Sortie mammoth : structure simple (p/strong/table/...) —
+               rendu avec le style par défaut du navigateur, pas de plugin
+               typographique dans ce projet ; suffisant pour un aperçu. -->
+          <article
+            class="text-body-sm leading-relaxed text-ink-muted"
+            [innerHTML]="asHtml(state())"
+          ></article>
+        }
+        @case ('table') {
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-body-sm">
+              <tbody>
+                @for (row of asRows(state()); track $index) {
+                  <tr class="border-b border-line">
+                    @for (cell of row; track $index) {
+                      <td class="whitespace-nowrap px-sm py-xs text-ink-muted">{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @default {
+          <div class="flex h-full flex-col items-center justify-center gap-sm text-center text-body-sm text-ink-subtle">
+            <ui-icon name="circle-help" [size]="20" />
+            {{ t(state().kind === 'error' ? 'workspace.attachmentPreview.error' : 'workspace.attachmentPreview.unsupported') }}
+          </div>
+        }
+      }
+    </div>
+
+    <footer class="p-lg">
+      <button
+        type="button"
+        class="inline-flex items-center gap-sm text-body-sm text-ink-muted transition-colors hover:text-primary"
+        (click)="openOriginal(attachment.file_url)"
+      >
+        <ui-icon name="external-link" [size]="14" />
+        {{ t('workspace.attachmentPreview.openExternal') }}
+      </button>
+    </footer>
+  </aside>
+}

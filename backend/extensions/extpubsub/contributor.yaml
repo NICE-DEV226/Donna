@@ -1,0 +1,10 @@
+version: "1"
+project: extpubsub
+description: Extension XCore Pub/Sub multi-provider (Redis, HiveMQ, mémoire) avec streaming SSE
+
+maintainers:
+  - name: traoreera
+    github: traoreera
+    role: Lead Maintainer
+
+contributors: []

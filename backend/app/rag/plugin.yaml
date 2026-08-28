@@ -1,0 +1,38 @@
+name: rag
+version: 1.0.0
+author: donna
+description: >
+  Base de connaissances RAG pour Donna — ingestion de documents (chunking +
+  embedding + indexation hybride via ext.rag), scopée par tenant, en tâche
+  de fond (xworker) avec suivi de statut en temps réel par websocket.
+
+execution_mode: trusted
+entry_point: src/main.py
+framework_version: ">=2.0.0"
+
+requires:
+  - name: auth
+    version: ">=1.0.0,<2.0.0"
+
+allowed_imports:
+  - fastapi
+  - sqlalchemy
+  - pydantic
+  - asyncio
+  - json
+  - typing
+  - datetime
+  - uuid
+  - contextlib
+  - redis
+  - re
+  - services
+
+resources:
+  timeout_seconds: 60
+  max_memory_mb: 512
+
+runtime:
+  health_check:
+    enabled: true
+    interval_seconds: 60

@@ -1,0 +1,51 @@
+<div *transloco="let t" class="mx-auto flex min-h-full max-w-hero flex-col justify-center px-lg py-xxl">
+  <h1 class="text-headline-lg text-ink">{{ t('workspace.setup.title') }}</h1>
+  <p class="mt-md max-w-measure text-body-lg text-ink-muted">{{ t('workspace.setup.body') }}</p>
+
+  <!--
+    Zone de dépôt réelle : glisser-déposer ET sélecteur de fichiers, parce que
+    le glisser-déposer seul est inaccessible au clavier.
+  -->
+  <label
+    class="mt-xl flex cursor-pointer flex-col items-center rounded-xl border border-dashed px-lg py-xl text-center transition-colors"
+    [class.border-line]="!dragging()"
+    [class.border-primary]="dragging()"
+    [class.bg-surface]="!dragging()"
+    [class.bg-primary-soft]="dragging()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="dragging.set(false)"
+    (drop)="onDrop($event)"
+  >
+    <ui-icon name="paperclip" [size]="24" class="text-ink-muted" />
+    <span class="mt-md text-body-md font-semibold text-ink">{{ t('workspace.setup.drop') }}</span>
+    <span class="mt-xs text-body-sm text-ink-muted">{{ t('workspace.setup.dropHint') }}</span>
+
+    <span class="mt-lg" uiButton="secondary" size="sm">{{ t('workspace.setup.browse') }}</span>
+    <input type="file" multiple class="sr-only" (change)="onFiles($event)" />
+  </label>
+
+  @if (store.documentCount() > 0) {
+    <p class="mt-md inline-flex items-center gap-sm text-body-sm text-success">
+      <ui-icon name="circle-check" [size]="16" />
+      {{ t('workspace.setup.selected', { count: store.documentCount() }) }}
+    </p>
+  }
+
+  <div class="mt-xl rounded-xl border border-line bg-surface p-lg">
+    <connections-panel />
+  </div>
+
+  <div class="mt-xl flex flex-wrap items-center gap-md">
+    <button
+      type="button"
+      uiButton
+      [disabled]="store.documentCount() === 0"
+      (click)="store.initialise()"
+    >
+      {{ t('workspace.setup.start') }}
+    </button>
+    <button type="button" uiButton="ghost" (click)="store.skipSetup()">
+      {{ t('workspace.setup.skip') }}
+    </button>
+  </div>
+</div>

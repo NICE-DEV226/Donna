@@ -1,0 +1,285 @@
+<div *transloco="let t" class="flex h-full min-h-0 flex-col">
+  <div class="min-h-0 grow overflow-y-auto px-lg">
+    @if (store.isEmpty()) {
+      <!-- État vide : l'invitation, pas un tableau de bord. -->
+      <div class="flex h-full flex-col items-center justify-center text-center">
+        <h1 class="text-headline-lg text-ink">{{ t('workspace.empty.greeting') }}</h1>
+        <p class="mt-sm text-headline-md font-normal text-ink-muted">
+          {{ t('workspace.empty.prompt') }}
+        </p>
+
+        <div class="mt-xl flex flex-wrap justify-center gap-md">
+          @for (suggestion of suggestions; track suggestion.key) {
+            <button
+              type="button"
+              class="inline-flex items-center gap-sm rounded-full border border-line bg-surface px-lg py-sm text-body-sm text-ink transition-colors hover:border-primary hover:text-primary"
+              (click)="sendSuggestion(suggestion.key)"
+            >
+              <ui-icon [name]="suggestion.icon" [size]="16" />
+              {{ t(suggestion.key) }}
+            </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <ol class="mx-auto flex max-w-hero flex-col gap-xl py-xl">
+        @for (message of store.messages(); track message.id) {
+          <li class="message-in flex flex-col">
+            @if (message.author === 'user') {
+              <!--
+                Aucun avatar côté utilisateur : dans un fil à deux voix,
+                l'alignement et la teinte disent déjà qui parle. Une pastille de
+                profil à chaque tour ne fait qu'alourdir la colonne.
+              -->
+              @if (message.text) {
+                <p
+                  class="max-w-[80%] self-end rounded-xl rounded-br-sm bg-surface-raised px-md py-sm text-body-md text-ink"
+                >
+                  {{ message.text ?? t(message.textKey ?? '') }}
+                </p>
+              }
+
+              @if (message.attachments?.length) {
+                <div class="mt-sm flex flex-wrap justify-end gap-sm">
+                  @for (attachment of message.attachments; track attachment.id) {
+                    <button
+                      type="button"
+                      uiChip="primary"
+                      class="transition-colors hover:bg-primary/10"
+                      [attr.title]="attachment.original_name"
+                      (click)="openAttachment(attachment)"
+                    >
+                      <ui-icon [name]="attachmentIcon(attachment)" [size]="14" />
+                      {{ attachment.original_name }}
+                    </button>
+                  }
+                </div>
+              }
+            } @else {
+              <div class="flex gap-md">
+                <span
+                  class="mt-xs flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary"
+                  aria-hidden="true"
+                >
+                  <donna-mark [size]="15" />
+                </span>
+
+                <div class="min-w-0 grow">
+                  @if (message.kind === 'interjection') {
+                    <donna-interjection [messageId]="message.id" />
+                  } @else if (message.kind === 'clarification') {
+                    <!--
+                      Elle demande avant de répondre. Les réponses sont cliquables :
+                      lever une ambiguïté ne doit pas coûter une phrase à retaper.
+                    -->
+                    <p class="text-body-lg text-ink">{{ t(message.textKey ?? '') }}</p>
+
+                    <div class="clarify-options mt-md flex flex-wrap gap-sm">
+                      @for (option of message.optionKeys; track option) {
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-sm rounded-full border border-line bg-surface px-lg py-sm text-body-sm text-ink transition-colors hover:border-primary hover:text-primary"
+                          [disabled]="store.isThinking()"
+                          (click)="store.chooseOption(option)"
+                        >
+                          {{ t(option) }}
+                        </button>
+                      }
+                    </div>
+
+                    <p class="mt-md text-body-sm text-ink-subtle">{{ t('workspace.clarify.note') }}</p>
+                  } @else {
+                  @if (message.kind === 'question' || message.kind === 'reminder') {
+                    <!-- Question ou rappel : distingué du texte d'assistant ordinaire, pas noyé dedans. -->
+                    <div class="relative overflow-hidden rounded-lg border border-line bg-primary/[0.03] py-md pr-md pl-lg">
+                      <span class="absolute inset-y-0 left-0 w-[3px] bg-primary" aria-hidden="true"></span>
+                      <p class="mb-xs flex items-center gap-xs text-label-caps uppercase text-primary">
+                        <ui-icon [name]="message.kind === 'question' ? 'circle-help' : 'clock'" [size]="14" />
+                        {{
+                          t(
+                            message.kind === 'question'
+                              ? 'workspace.notifications.donnaAsks'
+                              : 'workspace.notifications.pulse.reminder'
+                          )
+                        }}
+                      </p>
+                      <p class="text-body-lg text-ink">{{ message.text }}</p>
+
+                      @if (message.options?.length) {
+                        <div class="mt-md flex flex-wrap gap-sm">
+                          @for (option of message.options; track option) {
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-sm rounded-full border border-line bg-surface px-lg py-sm text-body-sm text-ink transition-colors hover:border-primary hover:text-primary"
+                              [disabled]="store.isThinking()"
+                              (click)="store.send(option)"
+                            >
+                              {{ option }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-body-lg text-ink">{{ message.text ?? t(message.textKey ?? '') }}</p>
+                  }
+
+                  @if (message.sources?.length) {
+                    <!-- Citations réelles (RAG) — cliquables, ouvrent le passage cité dans document-preview. -->
+                    <div class="mt-md flex flex-wrap gap-sm">
+                      @for (source of message.sources; track source.id) {
+                        <button
+                          type="button"
+                          uiChip
+                          class="transition-colors hover:bg-primary/10 hover:text-primary"
+                          [attr.title]="t('workspace.research.viewer.preview')"
+                          (click)="store.readSource(source)"
+                        >
+                          <ui-icon [name]="source.kind === 'web' ? 'globe' : 'file-text'" [size]="14" />
+                          {{ source.title }}
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  @if (message.attachments?.length) {
+                    <!-- Fichiers créés par DONNA (bridge MCP) — aperçu inline, voir attachment-preview. -->
+                    <div class="mt-md flex flex-wrap gap-sm">
+                      @for (attachment of message.attachments; track attachment.id) {
+                        <button
+                          type="button"
+                          uiChip="primary"
+                          class="transition-colors hover:bg-primary/10"
+                          [attr.title]="attachment.original_name"
+                          (click)="openAttachment(attachment)"
+                        >
+                          <ui-icon [name]="attachmentIcon(attachment)" [size]="14" />
+                          {{ attachment.original_name }}
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  @if (message.actionKey) {
+                    @if (store.isApproved(message.id)) {
+                      <!-- La marque se referme : l'action est validée. -->
+                      <p class="mt-md inline-flex items-center gap-sm text-body-sm text-success">
+                        <donna-mark [size]="18" closed />
+                        {{ t('workspace.message.approved') }}
+                      </p>
+                      @if (store.editedAction(message.id); as amended) {
+                        <p class="mt-xs text-body-sm text-ink-muted">{{ amended }}</p>
+                      }
+                    } @else if (store.editingAction() === message.id) {
+                      <div class="mt-md flex flex-col gap-sm">
+                        <label
+                          class="text-body-sm font-medium text-ink"
+                          [attr.for]="'action-' + message.id"
+                        >
+                          {{ t('workspace.message.editLabel') }}
+                        </label>
+                        <input
+                          uiInput
+                          #amend
+                          [id]="'action-' + message.id"
+                          type="text"
+                          [value]="t(message.actionKey)"
+                        />
+                        <div class="flex flex-wrap gap-sm">
+                          <button
+                            type="button"
+                            uiButton
+                            size="sm"
+                            (click)="store.saveAction(message.id, amend.value)"
+                          >
+                            {{ t('workspace.message.save') }}
+                          </button>
+                          <button
+                            type="button"
+                            uiButton="ghost"
+                            size="sm"
+                            (click)="store.cancelEditingAction()"
+                          >
+                            {{ t('workspace.message.cancel') }}
+                          </button>
+                        </div>
+                      </div>
+                    } @else {
+                      <!--
+                        L'action proposée est une PHRASE, pas une commande : c'est
+                        ce que DONNA fera. Les deux seuls contrôles sont la
+                        décision — valider, ou reformuler d'abord.
+                      -->
+                      <p class="mt-md flex items-start gap-sm text-body-sm text-success">
+                        <ui-icon name="calendar-days" [size]="16" class="mt-[2px] shrink-0" />
+                        {{ t(message.actionKey) }}
+                      </p>
+
+                      <div class="mt-md flex flex-wrap items-center gap-sm">
+                        <button type="button" uiButton size="sm" (click)="store.approve(message.id)">
+                          {{ t('workspace.message.approve') }}
+                        </button>
+                        <button
+                          type="button"
+                          uiButton="ghost"
+                          size="sm"
+                          (click)="store.startEditingAction(message.id)"
+                        >
+                          {{ t('workspace.message.edit') }}
+                        </button>
+                      </div>
+                    }
+                  }
+                  }
+                </div>
+              </div>
+            }
+          </li>
+        }
+
+        @if (store.isThinking()) {
+          <!--
+            Le travail en cours prend sa place dans le fil, pas seulement dans le
+            rail : on voit DONNA réfléchir là où la réponse va apparaître.
+            Muet pour les lecteurs d'écran — LiveAnnouncer annonce déjà les étapes.
+          -->
+          <li class="message-in flex gap-md" aria-hidden="true">
+            <span
+              class="mt-xs flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary"
+            >
+              <donna-mark [size]="15" />
+            </span>
+
+            <div class="min-w-0 grow">
+              @if (store.liveTrace().length) {
+                <!-- Les sources s'empilent en direct : on voit DONNA chercher. -->
+                <research-trace [entries]="store.liveTrace()" live />
+              } @else {
+                <div class="flex h-6 items-center gap-xs">
+                  @for (dot of dots; track dot) {
+                    <span
+                      class="thinking-dot size-1.5 rounded-full bg-primary"
+                      [style.--i]="dot"
+                    ></span>
+                  }
+                </div>
+              }
+
+              <div class="mt-md flex max-w-measure flex-col gap-sm">
+                <span class="shimmer h-3 w-full rounded-sm"></span>
+                <span class="shimmer h-3 w-4/5 rounded-sm"></span>
+                <span class="shimmer h-3 w-3/5 rounded-sm"></span>
+              </div>
+            </div>
+          </li>
+        }
+      </ol>
+    }
+  </div>
+
+  <div class="shrink-0 px-lg pb-lg">
+    <div class="mx-auto max-w-hero">
+      <workspace-composer [disabled]="store.isThinking()" (send)="send($event)" />
+    </div>
+  </div>
+</div>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="DONNA">
+  <rect width="32" height="32" rx="7.5" fill="#800020"/>
+  <g transform="translate(2.56 2.56) scale(0.84)" stroke="#fdfcfb" stroke-width="3.4"
+     stroke-linecap="round" fill="none">
+    <path d="M7.8 7.7V24.3"/>
+    <path d="M13.3 7.7C20.5 7.7 24.3 11.4 24.3 16C24.3 20.6 20.5 24.3 13.3 24.3"/>
+  </g>
+</svg>

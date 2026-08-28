@@ -1,0 +1,641 @@
+{
+  "nav": {
+    "how": "How it works",
+    "features": "Features",
+    "voices": "Voices",
+    "faq": "FAQ",
+    "signIn": "Sign in",
+    "getStarted": "Get started"
+  },
+  "hero": {
+    "eyebrow": "AI executive assistant for your company",
+    "title": "Your company, understood.",
+    "subtitle": "DONNA connects your knowledge, tools and workflows into one intelligent workspace — so you can simply ask, and get things done.",
+    "ctaPrimary": "Continue with Google",
+    "ctaSecondary": "See how it works",
+    "trust": "Scoped access · Your data never trains a model · Revoke any connector instantly"
+  },
+  "loop": {
+    "eyebrow": "How it works",
+    "title": "Ask in plain words. She handles the rest.",
+    "body": "No prompt craft, no dashboards to learn. DONNA reads across your mail, calendar, drive and chat as a single memory — then answers with the sources she used, so you can check her work.",
+    "points": {
+      "ask": "Ask the way you would ask a colleague.",
+      "read": "She searches every connected tool at once.",
+      "cite": "Every answer names the documents behind it."
+    }
+  },
+  "approve": {
+    "eyebrow": "Proactive, never presumptuous",
+    "title": "She anticipates. You approve.",
+    "body": "DONNA surfaces what matters before you ask — a renewal clashing with a flight, a reply that should have gone out yesterday. She drafts it. Nothing leaves your account until you say so.",
+    "draftLabel": "Drafted reply",
+    "draftTo": "To: Sarah Layton — Meridian Legal",
+    "draftSubject": "Re: Master services agreement — renewal window",
+    "draftBody": "Sarah, thanks for the heads-up. The renewal window closes on the 14th, and I'm travelling that week. Could we move the review to Thursday the 9th?",
+    "approve": "Send draft",
+    "edit": "Edit first",
+    "pending": "Waiting for your approval"
+  },
+  "why": {
+    "eyebrow": "Why an assistant, not a chatbot",
+    "title": "The difference is what happens after the answer.",
+    "items": {
+      "context": {
+        "title": "She keeps the context",
+        "body": "One memory across every tool, not a fresh conversation each time you open a tab."
+      },
+      "act": {
+        "title": "She closes the loop",
+        "body": "Drafting, scheduling, updating records — the work that usually follows the answer."
+      },
+      "trace": {
+        "title": "She shows her work",
+        "body": "Every claim carries its source, every action lands in an audit log you can read."
+      }
+    }
+  },
+  "bento": {
+    "eyebrow": "What she does",
+    "title": "As discreet as a great assistant. Considerably faster.",
+    "tiles": {
+      "brief": {
+        "title": "Morning briefings",
+        "body": "What changed overnight, what needs you today, and what can wait — before your first meeting."
+      },
+      "search": {
+        "title": "One search across everything",
+        "body": "Mail, calendar, drive and chat answered together, not tool by tool."
+      },
+      "draft": {
+        "title": "Drafts in your voice",
+        "body": "She learns how you write, then prepares the reply for you to approve."
+      },
+      "meetings": {
+        "title": "Meetings, handled",
+        "body": "Scheduling, agendas and follow-ups negotiated across calendars."
+      },
+      "memory": {
+        "title": "Company memory",
+        "body": "Policies, contracts and precedent — retrievable the moment they matter."
+      },
+      "audit": {
+        "title": "Every action logged",
+        "body": "A complete, readable record of what she did and why."
+      }
+    }
+  },
+  "trusted": {
+    "eyebrow": "Trusted by teams that bill by the hour"
+  },
+  "voices": {
+    "eyebrow": "Voices",
+    "title": "Take their word for it.",
+    "quotes": {
+      "one": {
+        "body": "I stopped asking where things were. She already had the file open, the clause highlighted, and an answer to the question I was about to ask.",
+        "name": "Harvey Specter",
+        "role": "Managing Partner"
+      },
+      "two": {
+        "body": "The audit log is what sold my compliance team. Every action she takes is legible after the fact. That is rarer than it should be.",
+        "name": "Rachel Zane",
+        "role": "General Counsel"
+      },
+      "three": {
+        "body": "She drafts in my voice well enough that I mostly press send. The hour I used to lose to my inbox is simply gone.",
+        "name": "Louis Litt",
+        "role": "Senior Partner"
+      },
+      "four": {
+        "body": "I onboarded in an afternoon. No prompts to learn, no dashboard to configure — I just asked, the way I would ask a person.",
+        "name": "Mike Ross",
+        "role": "Associate"
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "Questions",
+    "title": "Fair questions.",
+    "items": {
+      "data": {
+        "q": "Does DONNA train on my company's data?",
+        "a": "No. Your content is used to answer your questions and nothing else. It is never used to train a model, and it is never shared with other customers."
+      },
+      "access": {
+        "q": "What can she actually reach?",
+        "a": "Only the connectors you switch on, with scoped OAuth and least-privilege permissions. You can revoke any connector at any time, and she immediately loses that access."
+      },
+      "act": {
+        "q": "Can she act without asking me?",
+        "a": "Never on anything that leaves your account. She drafts, proposes and schedules, but sending, sharing and updating always wait for your explicit approval."
+      },
+      "wrong": {
+        "q": "What happens when she is wrong?",
+        "a": "Every answer names the documents behind it, so you can check the source in one click. When she is unsure, she says so rather than guessing."
+      },
+      "setup": {
+        "q": "How long does setup take?",
+        "a": "Sign in with Google and connect a tool or two — most teams are asking useful questions within ten minutes. There is nothing to configure or train."
+      }
+    }
+  },
+  "cta": {
+    "title": "Put DONNA to work.",
+    "body": "Connect your workspace in a minute. She takes it from there.",
+    "button": "Continue with Google"
+  },
+  "footer": {
+    "tagline": "You ask. She already knows.",
+    "product": "Product",
+    "company": "Company",
+    "links": {
+      "how": "How it works",
+      "features": "Features",
+      "security": "Security",
+      "contact": "Contact",
+      "faq": "FAQ",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
+    },
+    "rights": "DONNA AI. Enterprise secure.",
+    "contact": "Contact",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "legal": "Legal"
+  },
+  "preview": {
+    "question": "Find all contracts expiring in the next 60 days…",
+    "answer": "I found 14 contracts. Three need immediate attention.",
+    "sourceDrive": "Google Drive",
+    "sourceKnowledge": "Company knowledge",
+    "action": "Schedule a review with Sarah"
+  },
+  "auth": {
+    "back": "Back to donna.ai",
+    "or": "or",
+    "aside": {
+      "eyebrow": "She already knows",
+      "title": "DONNA reads across your mail, calendar and documents as one memory — then acts, with your word.",
+      "oauth": "Scoped OAuth — least-privilege access, revocable anytime.",
+      "encrypted": "Encrypted at rest and in transit. Your data never trains a model.",
+      "audit": "Full audit log of every action DONNA takes on your behalf."
+    },
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailTaken": "An account already exists with this email.",
+      "generic": "Something went wrong. Try again in a moment."
+    },
+    "oauth": {
+      "completing": "Signing you in…"
+    },
+    "fields": {
+      "email": "Work email",
+      "emailPlaceholder": "you@company.com",
+      "emailHint": "Use your company address so DONNA can map your workspace.",
+      "emailInvalid": "Use a valid work email address.",
+      "password": "Password",
+      "passwordHint": "At least {{count}} characters.",
+      "passwordMin": "Use at least {{count}} characters.",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Harvey Specter",
+      "required": "This field is required.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "login": {
+      "title": "Welcome back.",
+      "subtitle": "Sign in to pick up exactly where DONNA left off.",
+      "google": "Continue with Google",
+      "forgot": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Signing you in…",
+      "newHere": "New to DONNA?",
+      "createAccount": "Create an account"
+    },
+    "signup": {
+      "title": "Put DONNA to work.",
+      "subtitle": "Connect your workspace in a minute. She takes it from there.",
+      "google": "Sign up with Google",
+      "submit": "Create account",
+      "submitting": "Creating your workspace…",
+      "termsPrefix": "I agree to the ",
+      "termsLink": "Terms of Service",
+      "termsMiddle": " and the ",
+      "privacyLink": "Privacy Policy",
+      "termsSuffix": ".",
+      "termsRequired": "You need to accept this to continue.",
+      "already": "Already using DONNA?",
+      "signIn": "Sign in"
+    },
+    "reset": {
+      "title": "Let's get you back in.",
+      "subtitle": "Give us the address you sign in with. If it matches an account, a reset link is on its way.",
+      "submit": "Send the link",
+      "sending": "Sending…",
+      "sentTitle": "Check your inbox.",
+      "sentBody": "If {{email}} matches an account, the link is there. It expires in an hour.",
+      "back": "Back to sign in",
+      "resend": "Send it again"
+    }
+  },
+  "workspace": {
+    "nav": {
+      "newChat": "New conversation",
+      "recent": "Recent",
+      "connectors": "Connectors",
+      "settings": "Settings",
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar",
+      "notifications": "Notifications",
+      "account": "Your account"
+    },
+    "conversations": {
+      "one": {
+        "title": "Contract renewals — Q3",
+        "question": "Which renewals fall in Q3?",
+        "answer": "Four: Meridian on the 14th, Halloway on the 30th, Kestrel and Ardent in September. Only Meridian needs a decision this week."
+      },
+      "two": {
+        "title": "Board deck, Thursday",
+        "question": "What changed in the numbers since the last deck?",
+        "answer": "Revenue held, but two of your three largest contracts now renew inside the same fortnight. I flagged the concentration on slide 6."
+      },
+      "three": {
+        "title": "Meridian counter-proposal",
+        "question": "How did we answer their last counter?",
+        "answer": "You conceded the notice period and held the price. Their counsel accepted in writing on 2 August — I kept the thread."
+      },
+      "untitled": "New conversation"
+    },
+    "empty": {
+      "greeting": "Hi, I'm DONNA.",
+      "prompt": "How can I help?"
+    },
+    "suggestions": {
+      "search": "Search company knowledge",
+      "analyze": "Analyze documents",
+      "draft": "Draft executive summary"
+    },
+    "composer": {
+      "placeholder": "Ask DONNA anything about your company…",
+      "attach": "Attach a file",
+      "voice": "Dictate",
+      "send": "Send",
+      "caption": "Powered by XCore"
+    },
+    "connections": {
+      "title": "Active connections",
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "drive": "Google Drive",
+      "calendar": "Google Calendar",
+      "slack": "Slack",
+      "gmail": "Gmail"
+    },
+    "message": {
+      "you": "You",
+      "donna": "DONNA",
+      "sources": "Sources",
+      "approve": "Approve",
+      "edit": "Edit first",
+      "approved": "Approved — DONNA is on it.",
+      "editLabel": "Amend the action",
+      "save": "Save and approve",
+      "cancel": "Cancel"
+    },
+    "demo": {
+      "answer": "I found 14 contracts expiring in the next 60 days. Three need immediate attention: Meridian Legal, Halloway Group and Kestrel Partners. The Meridian window closes on the 14th, while you are travelling.",
+      "action": "Schedule a review with Sarah on Thursday the 9th"
+    },
+    "setup": {
+      "title": "Let's build your company memory.",
+      "body": "Add the documents DONNA should know — contracts, policies, precedent — and connect your tools. She indexes everything once. After that, she just knows.",
+      "drop": "Drop your documents here",
+      "dropHint": "PDF, Word, spreadsheets and slides — up to 200 MB per file",
+      "browse": "Choose files",
+      "selected": "{{count}} documents ready",
+      "start": "Initialise my workspace",
+      "skip": "Skip for now",
+      "uploadFailed": "Upload failed",
+      "indexing": {
+        "title": "Building your company memory",
+        "reading": "Reading your documents",
+        "extracting": "Extracting clauses and entities",
+        "indexing": "Indexing company memory",
+        "progress": "{{count}} documents processed",
+        "done": "Your workspace is ready.",
+        "announce": "DONNA: {{step}}"
+      }
+    },
+    "research": {
+      "searching": "DONNA is working…",
+      "done": "{{count}} tool(s) used",
+      "expand": "Show what DONNA did",
+      "collapse": "Hide details",
+      "document": "Document",
+      "web": "Web",
+      "open": "Open source",
+      "entries": {
+        "one": {
+          "title": "Meridian Legal — Master services agreement",
+          "url": "https://drive.google.com/file/meridian-msa",
+          "excerpt": "This agreement renews automatically unless either party gives notice; the renewal window closes on 14 September and no extension has been filed.",
+          "match": "the renewal window closes on 14 September",
+          "meta": "Google Drive · Updated 3 August · 14 pages",
+          "before": "5. Term and renewal. The initial term runs for twenty-four months from the commencement date set out in schedule 1.",
+          "after": "Notice must be served in writing to the registered address and copied to the account manager named in schedule 3."
+        },
+        "two": {
+          "title": "Halloway Group — Supply contract, schedule 2",
+          "url": "https://drive.google.com/file/halloway-supply",
+          "excerpt": "Pricing is fixed for the initial term. Termination for convenience requires sixty days' written notice to the registered address.",
+          "match": "requires sixty days' written notice",
+          "meta": "Google Drive · Updated 22 July · 9 pages",
+          "before": "Schedule 2 — commercial terms. Volumes are reviewed each quarter against the forecast supplied by the buyer.",
+          "after": "Where notice is served late, the term extends by a further twelve months on the same commercial terms."
+        },
+        "three": {
+          "title": "Kestrel Partners — filing history",
+          "url": "https://find-and-update.company-information.service.gov.uk/kestrel",
+          "excerpt": "A change of registered office was filed on 3 August, which supersedes the notice address held in our contract record.",
+          "match": "supersedes the notice address",
+          "meta": "Companies House · Public filing · Retrieved today",
+          "before": "Kestrel Partners LLP — filing history, most recent first.",
+          "after": "No further changes have been filed since. The previous address remains on record in documents filed before that date."
+        },
+        "four": {
+          "title": "Procurement policy v4",
+          "url": "https://drive.google.com/file/procurement-v4",
+          "excerpt": "Any renewal above £250,000 must be reviewed by the General Counsel before the notice deadline.",
+          "match": "must be reviewed by the General Counsel",
+          "meta": "Google Drive · Updated 11 June · 6 pages",
+          "before": "Section 4 — approvals. Thresholds are set annually by the finance committee and published in the intranet handbook.",
+          "after": "Reviews requested with fewer than five working days' notice may be declined."
+        },
+        "agenda": {
+          "title": "Agenda — Meridian review, Thursday 9th",
+          "url": "https://drive.google.com/file/meridian-agenda",
+          "meta": "Drafted by DONNA · Not yet sent",
+          "before": "1. Renewal window — closes 14 September. Decision needed before departure.",
+          "excerpt": "2. Notice address — their registered office changed on 3 August; our clause still names the previous address.",
+          "match": "our clause still names the previous address",
+          "after": "3. Price — hold at current terms. 4. Next steps and owner."
+        }
+      },
+      "viewer": {
+        "cited": "Cited passage",
+        "close": "Close the document",
+        "openExternal": "Open the original",
+        "preview": "Preview in DONNA"
+      }
+    },
+    "attachmentPreview": {
+      "close": "Close preview",
+      "openExternal": "Open the original",
+      "loading": "Loading preview…",
+      "error": "Couldn't load this file.",
+      "unsupported": "No preview available for this file type."
+    },
+    "memory": {
+      "saved": "Saved to company memory",
+      "detail": "Meridian renewal window — 14 September",
+      "view": "View",
+      "dismiss": "Dismiss"
+    },
+    "reminder": {
+      "trigger": "remind",
+      "confirm": "Noted. I'll come to you at 14:45, not 15:00 — you'll want a minute with the clause before she walks in.",
+      "time": "It's 14:45.",
+      "lead": "Sarah Layton, in fifteen minutes. The Meridian renewal you asked me to watch.",
+      "changedLabel": "Two things moved since you asked:",
+      "changes": {
+        "one": "The renewal window closes on the 14th, not the 21st.",
+        "two": "Their registered address changed on 3 August — your notice clause still points at the old one."
+      },
+      "prepared": "I've drafted the agenda and pulled the clause. You have not needed to ask.",
+      "openAgenda": "Open the agenda",
+      "sendAgenda": "Send it to Sarah",
+      "later": "Not now",
+      "deferred": "Set aside. I'll bring it back at 16:00.",
+      "badge": "DONNA came to you",
+      "sent": "Sent to Sarah. I've kept a copy in the Meridian file."
+    },
+    "clarify": {
+      "trigger": "contract",
+      "question": "Before I answer — which one? Three are in play, and they don't say the same thing.",
+      "options": {
+        "meridian": "Meridian Legal",
+        "halloway": "Halloway Group",
+        "all": "All three, side by side"
+      },
+      "note": "I'd rather ask than give you a confident wrong answer."
+    },
+    "projects": {
+      "title": "Projects",
+      "new": "New project",
+      "documents": "{{count}} documents",
+      "create": "Create project",
+      "cancel": "Cancel",
+      "nameLabel": "Project name",
+      "namePlaceholder": "Meridian — renewal 2026",
+      "clientLabel": "Client",
+      "clientPlaceholder": "Meridian Legal",
+      "addDocuments": "Add documents",
+      "addHint": "Drop files, or choose them",
+      "ready": "{{count}} documents ready",
+      "sharedNote": "Documents join the general knowledge base — DONNA draws on them from any conversation. What she retains about this client stays in the project's own memory.",
+      "nameRequired": "Give the project a name.",
+      "created": "Project created",
+      "indexing": "Indexing its documents into company memory",
+      "seed": {
+        "meridian": "Meridian — services agreement",
+        "halloway": "Halloway — supply renewal",
+        "kestrel": "Kestrel — due diligence"
+      },
+      "memory": {
+        "title": "{{client}} — project memory",
+        "subtitle": "Separate from other clients. The documents are not.",
+        "empty": "Nothing retained yet for this client.",
+        "companyTitle": "Company memory",
+        "savedToProject": "Saved to {{client}}'s memory",
+        "savedToCompany": "Saved to company memory",
+        "scopeProject": "This client only",
+        "scopeCompany": "Every conversation"
+      },
+      "seedMemory": {
+        "meridian": {
+          "one": "Renewal window closes 14 September — not the 21st, as the summary sheet still says.",
+          "two": "Their registered office moved on 3 August; the notice clause was never updated.",
+          "three": "Harvey conceded the notice period and held the price. Accepted in writing, 2 August."
+        },
+        "halloway": {
+          "one": "Sixty days' written notice, to the registered address only.",
+          "two": "Late notice extends the term by twelve months at the same price."
+        },
+        "kestrel": {
+          "one": "Due diligence opened 12 July. Filing history retrieved from Companies House."
+        }
+      }
+    },
+    "account": {
+      "name": "Harvey Specter",
+      "email": "harvey@pearsonhardman.com",
+      "role": "Managing Partner",
+      "profile": "Your profile",
+      "settings": "Settings",
+      "signOut": "Sign out"
+    },
+    "settings": {
+      "title": "Settings",
+      "connectors": {
+        "title": "Connectors",
+        "body": "DONNA reads only what you switch on. Turn one off and she loses that access immediately.",
+        "connect": "Connect",
+        "disconnect": "Disconnect",
+        "connected": "Connected",
+        "disconnected": "Not connected"
+      },
+      "language": {
+        "title": "Language",
+        "body": "Applies to the whole workspace, including what DONNA writes."
+      },
+      "memory": {
+        "title": "Company memory",
+        "body": "{{count}} documents indexed. Your content answers your questions and is never used to train a model.",
+        "purge": "Erase company memory",
+        "purged": "Company memory erased"
+      },
+      "account": {
+        "title": "Sign-in methods",
+        "body": "Signed up with just an email and password? Link Google so you can sign in with either from now on.",
+        "google": "Google",
+        "linkedAs": "Linked as {{email}}",
+        "notLinked": "Not linked",
+        "link": "Link Google account",
+        "unlink": "Unlink",
+        "linked": "Google account linked",
+        "unlinked": "Google account unlinked",
+        "linkFailed": "Couldn't link this Google account — it may already be linked to another user."
+      }
+    },
+    "profile": {
+      "title": "Your profile",
+      "nameLabel": "Full name",
+      "emailLabel": "Work email",
+      "roleLabel": "Role",
+      "save": "Save changes",
+      "saved": "Profile updated"
+    },
+    "connectorsList": {
+      "drive": {
+        "detail": "Contracts, policies and precedent"
+      },
+      "calendar": {
+        "detail": "Meetings, availability and conflicts"
+      },
+      "slack": {
+        "detail": "Team conversations and decisions"
+      },
+      "gmail": {
+        "detail": "Threads, drafts and attachments"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "empty": "Nothing yet. DONNA will tell you when she decides something.",
+      "clear": "Clear all",
+      "donnaAsks": "DONNA has a question",
+      "pulse": {
+        "security": "Account security",
+        "billing": "Billing",
+        "tenant": "Workspace",
+        "reminder": "Reminder",
+        "generic": "Notification"
+      }
+    },
+    "errors": {
+      "chatFailed": "DONNA couldn't answer. Try again in a moment.",
+      "fileOpenFailed": "Couldn't open this file.",
+      "uploadFailed": "File rejected"
+    },
+    "attachments": {
+      "label": "{{count}} attached",
+      "remove": "Remove {{name}}"
+    },
+    "voice": {
+      "start": "Dictate",
+      "stop": "Stop dictation",
+      "listening": "Listening…"
+    }
+  },
+  "security": {
+    "eyebrow": "Security",
+    "title": "She works inside your walls.",
+    "body": "DONNA reads what you connect and nothing else. Every permission is scoped, every action is recorded, and you can cut her off in one click.",
+    "items": {
+      "scoped": {
+        "title": "Least-privilege by default",
+        "body": "Scoped OAuth per connector. She sees the folders you grant, not the drive."
+      },
+      "encrypted": {
+        "title": "Encrypted, and never trained on",
+        "body": "At rest and in transit. Your content answers your questions — it never becomes a model."
+      },
+      "audited": {
+        "title": "Every action on the record",
+        "body": "A readable log of what she did, when, and which document she relied on."
+      }
+    },
+    "revoke": "Revoke any connector instantly"
+  },
+  "legal": {
+    "pending": "Binding text in preparation",
+    "pendingBody": "Our counsel is drafting the definitive wording. Until it is published, what follows states the commitments DONNA already makes — the same ones set out on our public pages. They are not a substitute for the contract.",
+    "contact": "Questions before then: legal@donna.ai",
+    "terms": {
+      "title": "Terms of Service",
+      "intro": "What DONNA will and will not do with the workspace you connect.",
+      "sections": {
+        "scope": {
+          "title": "What she may reach",
+          "body": "Only the connectors you switch on, through scoped OAuth with least-privilege permissions. Revoking a connector removes her access immediately and irreversibly."
+        },
+        "consent": {
+          "title": "Nothing leaves without you",
+          "body": "DONNA drafts, proposes and schedules. Sending, sharing and updating always wait for an explicit approval from you. There is no setting that removes this step."
+        },
+        "audit": {
+          "title": "Everything is written down",
+          "body": "Every action taken on your behalf lands in an audit log you can read, export and hand to your compliance team."
+        },
+        "accuracy": {
+          "title": "She can be wrong",
+          "body": "Every answer names the documents behind it so you can check the source. When she is unsure she says so. You remain responsible for the decisions you take."
+        }
+      }
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "Where your content goes, and where it does not.",
+      "sections": {
+        "training": {
+          "title": "Your data trains nothing",
+          "body": "Your content answers your questions and nothing else. It is never used to train a model and never shared with other customers."
+        },
+        "storage": {
+          "title": "Storage",
+          "body": "Encrypted at rest and in transit. Indexed content lives in your workspace and is deleted with it."
+        },
+        "separation": {
+          "title": "Separation between clients",
+          "body": "Documents feed one general knowledge base for your company. What DONNA retains about a given client stays in that project's own memory and is not surfaced in another."
+        },
+        "deletion": {
+          "title": "Removal",
+          "body": "Disconnecting a connector removes its access. Deleting a project removes its memory. Deleting the workspace removes the index."
+        }
+      }
+    }
+  }
+}

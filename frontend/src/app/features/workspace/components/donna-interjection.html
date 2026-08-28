@@ -1,0 +1,69 @@
+<article
+  *transloco="let t"
+  class="interjection-in relative overflow-hidden rounded-xl border border-line bg-primary/[0.03] py-lg pr-lg pl-xl"
+>
+  <!-- Le filet burgundy : la marque qu'elle est entrée d'elle-même. -->
+  <span class="absolute inset-y-0 left-0 w-[3px] bg-primary" aria-hidden="true"></span>
+
+  @if (store.isDeferred(messageId())) {
+    <!-- Repoussée, pas perdue : elle ne harcèle pas, elle repasse. -->
+    <p class="flex items-center gap-sm text-body-sm text-ink-muted">
+      <ui-icon name="clock" [size]="16" class="text-ink-subtle" />
+      {{ t('workspace.reminder.deferred') }}
+    </p>
+  } @else {
+    <header class="mb-md flex flex-wrap items-center gap-sm">
+      <span class="text-label-caps uppercase text-primary">{{ t('workspace.reminder.badge') }}</span>
+      <span class="text-body-sm text-ink-subtle">{{ t('workspace.reminder.time') }}</span>
+    </header>
+
+    <p class="text-body-lg text-ink">{{ t('workspace.reminder.lead') }}</p>
+
+    <!-- Le geste qui distingue une assistante d'une alarme : ce qui a bougé. -->
+    <p class="mt-lg text-body-sm font-semibold text-ink">
+      {{ t('workspace.reminder.changedLabel') }}
+    </p>
+    <ul class="mt-sm flex flex-col gap-sm">
+      @for (change of changes; track change) {
+        <li class="flex items-start gap-sm text-body-sm text-ink-muted">
+          <span class="mt-[7px] size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+          {{ t(change) }}
+        </li>
+      }
+    </ul>
+
+    <p class="mt-lg text-body-md text-ink">{{ t('workspace.reminder.prepared') }}</p>
+
+    @if (store.isApproved(messageId())) {
+      <p class="mt-lg inline-flex items-center gap-sm text-body-sm text-success">
+        <donna-mark [size]="18" closed />
+        {{ t('workspace.reminder.sent') }}
+      </p>
+    } @else {
+      <div class="mt-lg flex flex-wrap items-center gap-sm">
+        <button
+          type="button"
+          uiButton
+          size="sm"
+          wrap
+          (click)="store.approve(messageId())"
+        >
+          <ui-icon name="calendar-days" [size]="16" />
+          {{ t('workspace.reminder.sendAgenda') }}
+        </button>
+        <button
+          type="button"
+          uiButton="secondary"
+          size="sm"
+          wrap
+          (click)="store.readAgenda()"
+        >
+          {{ t('workspace.reminder.openAgenda') }}
+        </button>
+        <button type="button" uiButton="ghost" size="sm" (click)="store.defer(messageId())">
+          {{ t('workspace.reminder.later') }}
+        </button>
+      </div>
+    }
+  }
+</article>

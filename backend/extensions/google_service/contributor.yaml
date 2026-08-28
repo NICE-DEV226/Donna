@@ -1,0 +1,10 @@
+version: "1"
+project: googleService
+description: Extension XCore Gmail + Google Calendar (client HTTP stateless)
+
+maintainers:
+  - name: traoreera
+    github: traoreera
+    role: Lead Maintainer
+
+contributors: []

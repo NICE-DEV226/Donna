@@ -1,0 +1,714 @@
+<title>Donna, Debugged</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,420;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+  rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #F7F2EC;
+    --surface: #FFFDFA;
+    --ink: #241B1D;
+    --ink-muted: #5B4F4C;
+    --ink-subtle: #8A7C77;
+    --line: #DED2C3;
+    --maroon: #7A2036;
+    --maroon-soft: #F1DEE1;
+    --slate: #33546A;
+    --slate-soft: #DDE6EA;
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-body: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #191315;
+      --surface: #221A1C;
+      --ink: #F3EAE5;
+      --ink-muted: #C8B9B4;
+      --ink-subtle: #8F7E79;
+      --line: #3B2E2F;
+      --maroon: #E08A9C;
+      --maroon-soft: #3B2229;
+      --slate: #9AC0D6;
+      --slate-soft: #1E2E36;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #191315;
+    --surface: #221A1C;
+    --ink: #F3EAE5;
+    --ink-muted: #C8B9B4;
+    --ink-subtle: #8F7E79;
+    --line: #3B2E2F;
+    --maroon: #E08A9C;
+    --maroon-soft: #3B2229;
+    --slate: #9AC0D6;
+    --slate-soft: #1E2E36;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: var(--maroon);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--maroon);
+    outline-offset: 3px;
+  }
+
+  .page {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 64px 28px 96px;
+  }
+
+  /* ── Header ─────────────────────────────────────────── */
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--maroon);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1.5px;
+    background: var(--maroon);
+    display: inline-block;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(34px, 5vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 14px 0 0;
+  }
+
+  .lede {
+    margin: 18px 0 0;
+    max-width: 62ch;
+    font-size: 17px;
+    color: var(--ink-muted);
+  }
+
+  .lede strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ── Section scaffolding ────────────────────────────── */
+
+  section {
+    margin-top: 64px;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -0.005em;
+    margin: 0 0 6px;
+  }
+
+  .section-note {
+    margin: 0 0 28px;
+    color: var(--ink-subtle);
+    font-size: 14.5px;
+    max-width: 68ch;
+  }
+
+  /* ── Legend ─────────────────────────────────────────── */
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin: 0 0 22px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  .swatch.new {
+    background: var(--maroon);
+  }
+
+  .swatch.fix {
+    background: var(--slate);
+  }
+
+  .swatch.verified {
+    border: 1.5px solid var(--ink-muted);
+    background: transparent;
+  }
+
+  /* ── Diagram ────────────────────────────────────────── */
+
+  figure {
+    margin: 0;
+  }
+
+  .diagram-frame {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    overflow-x: auto;
+  }
+
+  svg.arch {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 760px;
+  }
+
+  svg.arch text {
+    fill: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  svg.arch .zone-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    fill: var(--ink-subtle);
+    text-transform: uppercase;
+  }
+
+  svg.arch .box-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--ink);
+  }
+
+  svg.arch .box-sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    fill: var(--ink-subtle);
+  }
+
+  svg.arch .box {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1.3;
+  }
+
+  svg.arch .box.dim {
+    fill: var(--paper);
+  }
+
+  svg.arch line,
+  svg.arch polyline {
+    stroke: var(--ink-subtle);
+    stroke-width: 1.3;
+    fill: none;
+  }
+
+  svg.arch .dashed {
+    stroke-dasharray: 4 4;
+  }
+
+  svg.arch .arrow-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    fill: var(--ink-muted);
+  }
+
+  svg.arch .label-bg {
+    fill: var(--surface);
+  }
+
+  svg.arch .pill-new {
+    fill: var(--maroon);
+  }
+
+  svg.arch .pill-fix {
+    fill: var(--slate);
+  }
+
+  svg.arch .pill-text {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    fill: var(--surface);
+    letter-spacing: 0.02em;
+  }
+
+  figcaption {
+    margin-top: 14px;
+    font-size: 13.5px;
+    color: var(--ink-subtle);
+    max-width: 70ch;
+  }
+
+  /* ── Changelog cards ────────────────────────────────── */
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 720px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .card-head h3 {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+
+  .tag.new {
+    background: var(--maroon-soft);
+    color: var(--maroon);
+  }
+
+  .tag.fix {
+    background: var(--slate-soft);
+    color: var(--slate);
+  }
+
+  .card ul {
+    margin: 0;
+    padding: 0 0 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14.5px;
+    color: var(--ink-muted);
+  }
+
+  .card li::marker {
+    color: var(--ink-subtle);
+  }
+
+  .card li strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.87em;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.05em 0.4em;
+    color: var(--ink);
+  }
+
+  .verified-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-subtle);
+    padding-top: 10px;
+    margin-top: 2px;
+    border-top: 1px solid var(--line);
+  }
+
+  .verified-line .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink-muted);
+    flex-shrink: 0;
+  }
+
+  .verified-line.done .dot {
+    background: var(--ink-muted);
+  }
+
+  /* ── Open items ─────────────────────────────────────── */
+
+  .open-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .open-list li {
+    display: flex;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14.5px;
+    color: var(--ink-muted);
+  }
+
+  .open-list .who {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-subtle);
+    flex-shrink: 0;
+    width: 84px;
+    padding-top: 2px;
+  }
+
+  .open-list strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-subtle);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Récapitulatif de session · 28 août 2026</p>
+    <h1>Ce qu'on a fait sur Donna</h1>
+    <p class="lede">
+      Une session partie d'un simple <strong>« intègre le frontend et le backend »</strong>
+      qui a fini par traverser tout l'empilement : un bug de fiabilité LLM, un système
+      d'aperçu de fichiers, une liaison de compte Google, et un bug RAG qui empêchait
+      <strong>tout document d'être indexé depuis le début</strong>.
+    </p>
+  </header>
+
+  <section aria-labelledby="diagram-h">
+    <h2 id="diagram-h">Où c'est allé toucher</h2>
+    <p class="section-note">
+      Le schéma complet : les trois écrans touchés côté Angular, les trois plugins
+      backend concernés, et les deux mécanismes qui ont vraiment changé de
+      comportement — le repli LLM et l'indexation RAG.
+    </p>
+
+    <div class="legend">
+      <span><i class="swatch new" aria-hidden="true"></i> Nouveau</span>
+      <span><i class="swatch fix" aria-hidden="true"></i> Corrigé</span>
+    </div>
+
+    <figure>
+      <div class="diagram-frame">
+        <svg class="arch" viewBox="0 0 1180 500" role="img"
+          aria-label="Schéma d'architecture montrant le frontend Angular (conversation, aperçu de pièces jointes, paramètres) parlant au backend xcore (plugins xauth, chat, rag) ; le plugin chat route vers Groq par défaut et bascule vers Ollama en local si le cloud échoue ; le plugin rag indexe désormais les embeddings en 768 dimensions au lieu de 8.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+              orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+            </marker>
+          </defs>
+
+          <!-- Zone labels -->
+          <text class="zone-label" x="20" y="42">Frontend — Angular</text>
+          <text class="zone-label" x="320" y="42">Backend — xcore</text>
+          <text class="zone-label" x="630" y="42">Providers LLM</text>
+          <text class="zone-label" x="900" y="42">Services externes</text>
+
+          <!-- Frontend boxes -->
+          <rect class="box" x="20" y="70" width="250" height="70" rx="9" />
+          <text class="box-title" x="38" y="98">Conversation panel</text>
+          <text class="box-sub" x="38" y="116">chat.service.ts</text>
+
+          <rect class="box" x="20" y="170" width="250" height="75" rx="9" />
+          <rect class="pill-new" x="188" y="178" width="66" height="16" rx="8" />
+          <text class="pill-text" x="221" y="189" text-anchor="middle">NOUVEAU</text>
+          <text class="box-title" x="38" y="205">Aperçu de fichiers</text>
+          <text class="box-sub" x="38" y="223">attachment-preview.ts</text>
+
+          <rect class="box" x="20" y="265" width="250" height="75" rx="9" />
+          <rect class="pill-new" x="188" y="273" width="66" height="16" rx="8" />
+          <text class="pill-text" x="221" y="284" text-anchor="middle">NOUVEAU</text>
+          <text class="box-title" x="38" y="300">Paramètres — Comptes</text>
+          <text class="box-sub" x="38" y="318">settings-page.ts</text>
+
+          <!-- Backend boxes -->
+          <rect class="box" x="320" y="70" width="260" height="70" rx="9" />
+          <rect class="pill-new" x="504" y="78" width="66" height="16" rx="8" />
+          <text class="pill-text" x="537" y="89" text-anchor="middle">NOUVEAU</text>
+          <text class="box-title" x="338" y="98">xauth — liaison OAuth</text>
+          <text class="box-sub" x="338" y="116">services/oauth.py</text>
+
+          <rect class="box" x="320" y="170" width="260" height="170" rx="9" />
+          <rect class="pill-fix" x="382" y="178" width="60" height="16" rx="8" />
+          <text class="pill-text" x="412" y="189" text-anchor="middle">CORRIGÉ</text>
+          <rect class="pill-new" x="448" y="178" width="66" height="16" rx="8" />
+          <text class="pill-text" x="481" y="189" text-anchor="middle">NOUVEAU</text>
+          <text class="box-title" x="338" y="212">chat — ProviderRouter</text>
+          <text class="box-sub" x="338" y="230">router.py · chat_routes.py</text>
+          <line x1="338" y1="245" x2="580" y2="245" stroke="var(--line)" />
+          <text class="box-sub" x="338" y="264">events SSE : start · delta ·</text>
+          <text class="box-sub" x="338" y="279">provider_fallback · done · error</text>
+          <text class="box-sub" x="338" y="300">timeout Ollama : 600s → 90s</text>
+
+          <rect class="box" x="320" y="400" width="260" height="80" rx="9" />
+          <rect class="pill-fix" x="446" y="408" width="60" height="16" rx="8" />
+          <text class="pill-text" x="476" y="419" text-anchor="middle">CORRIGÉ</text>
+          <text class="box-title" x="338" y="440">rag — plugin</text>
+          <text class="box-sub" x="338" y="458">rag_routes.py</text>
+          <text class="box-sub" x="338" y="472">recherche hybride : vecteur + BM25 + rerank</text>
+
+          <!-- Provider boxes -->
+          <rect class="box dim" x="630" y="180" width="220" height="70" rx="9" />
+          <text class="box-title" x="648" y="208">Groq — cloud</text>
+          <text class="box-sub" x="648" y="226">openai/gpt-oss-120b · défaut</text>
+
+          <rect class="box dim" x="630" y="280" width="220" height="70" rx="9" />
+          <rect class="pill-new" x="784" y="288" width="52" height="16" rx="8" />
+          <text class="pill-text" x="810" y="299" text-anchor="middle" style="font-size:8.5px">REPLI</text>
+          <text class="box-title" x="648" y="308">Ollama — local</text>
+          <text class="box-sub" x="648" y="326">qwen2.5:3b · CPU</text>
+
+          <!-- External boxes -->
+          <rect class="box dim" x="900" y="70" width="250" height="70" rx="9" />
+          <text class="box-title" x="918" y="98">Google OAuth</text>
+          <text class="box-sub" x="918" y="116">consentement + retour</text>
+
+          <rect class="box dim" x="900" y="400" width="250" height="80" rx="9" />
+          <rect class="pill-fix" x="1054" y="408" width="60" height="16" rx="8" />
+          <text class="pill-text" x="1084" y="419" text-anchor="middle">CORRIGÉ</text>
+          <text class="box-title" x="918" y="444">rag_vec (sqlite-vec)</text>
+          <text class="box-sub" x="918" y="462">embed_dim : 8 → 768</text>
+
+          <!-- Arrows: frontend -> backend -->
+          <polyline class="conn" points="270,105 295,105 295,205 320,205" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="276" y="132" width="180" height="15" />
+          <text class="arrow-label" x="283" y="143">POST /chat/stream (SSE)</text>
+
+          <line class="conn" x1="270" y1="208" x2="320" y2="222" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="272" y="240" width="130" height="15" />
+          <text class="arrow-label" x="276" y="251">GET fichier joint</text>
+
+          <polyline class="conn" points="270,302 300,302 300,105 320,105" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="212" y="325" width="220" height="15" />
+          <text class="arrow-label" x="217" y="336">GET .../oauth/google/authorize</text>
+
+          <!-- Arrow: xauth <-> Google -->
+          <line class="conn" x1="580" y1="105" x2="900" y2="105" marker-end="url(#arrow)" marker-start="url(#arrow)" />
+          <rect class="label-bg" x="600" y="80" width="280" height="15" />
+          <text class="arrow-label" x="606" y="91">authorize ↔ callback (lie à mon user_id)</text>
+
+          <!-- Arrow: chat -> Groq -->
+          <line class="conn" x1="580" y1="215" x2="630" y2="215" marker-end="url(#arrow)" />
+
+          <!-- Arrow: Groq -> Ollama (fallback mechanism) -->
+          <line class="conn" x1="740" y1="250" x2="740" y2="280" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="752" y="255" width="150" height="30" />
+          <text class="arrow-label" x="756" y="266">429 / erreur non</text>
+          <text class="arrow-label" x="756" y="279">catégorisée → repli</text>
+
+          <!-- Arrow: Ollama -> chat (return event) -->
+          <polyline class="conn dashed" points="630,315 605,315 605,280 580,280" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="415" y="325" width="205" height="15" />
+          <text class="arrow-label" x="419" y="336">event provider_fallback (SSE)</text>
+
+          <!-- Arrow: rag -> rag_vec -->
+          <line class="conn" x1="580" y1="440" x2="900" y2="440" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="620" y="415" width="235" height="15" />
+          <text class="arrow-label" x="624" y="426">embed 768-d — corrigé (était 8)</text>
+        </svg>
+      </div>
+      <figcaption>
+        Le point qui comptait le plus aujourd'hui : quand Groq échoue (limite de
+        débit ou erreur de schéma d'outil), le routeur bascule sur Ollama en local
+        au lieu de couper le flux en silence — et le frontend le voit passer dans
+        sa trace de réflexion.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="changelog-h">
+    <h2 id="changelog-h">Le détail, par chantier</h2>
+    <p class="section-note">Quatre chantiers, dans l'ordre où ils sont sortis.</p>
+
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Fiabilité du chat</h3>
+          <span class="tag fix">Corrigé</span>
+        </div>
+        <ul>
+          <li>Les échecs du provider LLM (rate limit Groq) n'étaient <strong>loggés nulle part</strong> — ~79 messages
+            restaient sans réponse sans aucune trace exploitable.</li>
+          <li>Une erreur de schéma d'outil (<code>mcp_word_create_document</code>) faisait <strong>planter tout le flux
+              SSE en silence</strong> — corrigé par un filet générique dans <code>chat_routes.py::event_stream</code>.
+          </li>
+          <li>Ajout du repli automatique Groq → Ollama (<code>router.py</code>), visible côté client via un nouvel
+            événement <code>provider_fallback</code>.</li>
+          <li>Timeout Ollama réduit de 600s à 90s (<code>plugin.yaml</code>) — un pire cas pouvait bloquer jusqu'à 2h
+            avec 12 rounds d'outils.</li>
+        </ul>
+        <div class="verified-line done"><span class="dot"></span> Vérifié en direct — le repli et le filet d'erreur ont
+          tous les deux été déclenchés réellement pendant les tests.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Aperçu de pièces jointes</h3>
+          <span class="tag new">Nouveau</span>
+        </div>
+        <ul>
+          <li>Panneau latéral inline pour PDF, image, texte, <strong>Markdown</strong> (rendu réel via
+            <code>marked</code> + <code>DOMPurify</code>), <strong>JSON</strong> (indenté), Word (<code>mammoth</code>)
+            et Excel (<code>exceljs</code>).</li>
+          <li>Réutilise le même panneau que les sources RAG (<code>document-preview</code>) — un seul ouvert à la fois.
+          </li>
+          <li>Toutes les libs sont chargées à la demande — aucun impact sur le bundle initial.</li>
+        </ul>
+        <div class="verified-line"><span class="dot"></span> Vérifié par <code>tsc</code> + <code>ng build</code> +
+          contrat MIME confirmé côté backend — pas encore vu à l'écran (navigateur indisponible cette session).</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Connexion Google</h3>
+          <span class="tag new">Nouveau</span>
+        </div>
+        <ul>
+          <li>Un compte créé par email/mot de passe peut désormais lier Google depuis Paramètres, sans quitter sa
+            session.</li>
+          <li>La liaison associe au <code>user_id</code> courant — pas par correspondance d'email, qui aurait pu
+            basculer silencieusement vers un tout autre compte si l'email Google différait.</li>
+          <li>Nouvelle section « Méthodes de connexion » dans Settings, séparée des Connecteurs (qui restent la démo
+            scénarisée existante).</li>
+        </ul>
+        <div class="verified-line"><span class="dot"></span> Le passage par l'écran de consentement Google réel n'a pas
+          pu être testé de bout en bout (nécessite un vrai navigateur).</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>RAG — bug de dimension</h3>
+          <span class="tag fix">Corrigé</span>
+        </div>
+        <ul>
+          <li><code>embed_dim: 8</code> dans <code>integration.yaml</code> au lieu de 768 (ce que produit réellement
+            <code>nomic-embed-text</code>) — la table <code>rag_vec</code> avait été créée avec la mauvaise dimension
+            dès le premier démarrage.</li>
+          <li>Conséquence réelle : <strong>aucun document n'avait jamais été indexé avec succès</strong> — les 3
+            documents existants étaient tous en échec, <code>rag_chunks</code> à zéro ligne.</li>
+          <li>Table vide supprimée et recréée avec la bonne dimension ; un nouveau document test s'indexe et se retrouve
+            correctement en conversation.</li>
+        </ul>
+        <div class="verified-line done"><span class="dot"></span> Vérifié en direct de bout en bout — upload →
+          indexation → citée par Donna avec la bonne réponse.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section aria-labelledby="open-h">
+    <h2 id="open-h">Ce qui reste ouvert</h2>
+    <p class="section-note">Pas oublié — juste hors de portée de cette session, ou à faire côté humain.</p>
+
+    <ul class="open-list">
+      <li>
+        <span class="who">Toi</span>
+        <span>Réuploader <code>xcore.zip</code> — ses deux entrées RAG sont restées en échec avant la correction et je
+          n'ai pas ton JWT pour relancer l'ingestion à ta place.</span>
+      </li>
+      <li>
+        <span class="who">Toi</span>
+        <span>Cliquer « Lier un compte Google » depuis Paramètres pour valider le round-trip Google réel — je ne peux
+          pas passer l'écran de consentement moi-même.</span>
+      </li>
+      <li>
+        <span class="who">Pré-existant</span>
+        <span><code>research-trace.spec.ts</code> bloque toute la suite de tests (<code>npm test</code> ne compile pas)
+          — référence une ancienne forme de <code>TraceEntry</code>/<code>ResearchTrace</code> qui n'existe plus. Sans
+          rapport avec cette session, pas touché.</span>
+      </li>
+      <li>
+        <span class="who">Pré-existant</span>
+        <span>Aucun <code>environment.prod.ts</code> ni <code>fileReplacements</code> — un build de prod embarquerait
+          encore <code>localhost:8000</code> comme <code>apiUrl</code>.</span>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Donna — session du 28 août 2026</span>
+    <span>backend FastAPI/xcore · frontend Angular 22</span>
+  </footer>
+
+</div>

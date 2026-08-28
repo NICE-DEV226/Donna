@@ -1,0 +1,180 @@
+<header
+  *transloco="let t"
+  class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-md border-b border-line bg-canvas/90 px-lg backdrop-blur-md"
+>
+  <div class="ml-auto"></div>
+
+  <language-switch />
+
+  <!-- La cloche redonne ce que les notifications ont dit avant de disparaître. -->
+  <button
+    type="button"
+    cdkOverlayOrigin
+    #bellTrigger="cdkOverlayOrigin"
+    class="relative flex size-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-sunken hover:text-primary"
+    [attr.aria-label]="t('workspace.nav.notifications')"
+    [attr.aria-expanded]="bell.open()"
+    aria-haspopup="menu"
+    (click)="bell.togglePinned()"
+    (keydown)="bell.onKeydown($event)"
+  >
+    <ui-icon name="bell" [size]="20" />
+    @if (toasts.history().length) {
+      <span
+        class="absolute top-1 right-1 size-2 rounded-full bg-primary"
+        aria-hidden="true"
+      ></span>
+    }
+  </button>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="bellTrigger"
+    [cdkConnectedOverlayOpen]="bell.open()"
+    [cdkConnectedOverlayPositions]="bellPositions"
+    (overlayOutsideClick)="bell.hide()"
+    (overlayKeydown)="bell.onKeydown($event)"
+  >
+    <div class="flyout w-80 rounded-xl border border-line bg-surface p-lg shadow-floating">
+      <header class="mb-md flex items-center justify-between gap-sm">
+        <h2 class="text-label-caps uppercase text-ink-muted">
+          {{ t('workspace.notifications.title') }}
+        </h2>
+        @if (toasts.history().length) {
+          <button
+            type="button"
+            class="text-body-sm text-ink-muted transition-colors hover:text-primary"
+            (click)="toasts.clearHistory()"
+          >
+            {{ t('workspace.notifications.clear') }}
+          </button>
+        }
+      </header>
+
+      @if (toasts.history().length) {
+        <ul class="flex flex-col gap-md">
+          @for (item of toasts.history(); track item.id) {
+            <li class="flex gap-sm">
+              <ui-icon name="brain" [size]="16" class="mt-xs shrink-0 text-primary" />
+              <div class="min-w-0">
+                <p class="text-body-sm text-ink">{{ t(item.titleKey, item.titleParams) }}</p>
+                @if (item.bodyText) {
+                  <p class="text-body-sm text-ink-muted">{{ item.bodyText }}</p>
+                } @else if (item.bodyKey) {
+                  <p class="text-body-sm text-ink-muted">{{ t(item.bodyKey) }}</p>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="text-body-sm text-ink-subtle">{{ t('workspace.notifications.empty') }}</p>
+      }
+    </div>
+  </ng-template>
+
+  <!--
+    Les connexions ne méritent pas un rail permanent : on les consulte, on ne
+    les surveille pas. Elles vivent donc sous ce bouton, exactement comme le
+    menu vit sous son icône.
+  -->
+  <button
+    type="button"
+    uiButton="secondary"
+    size="sm"
+    cdkOverlayOrigin
+    #trigger="cdkOverlayOrigin"
+    [attr.aria-expanded]="flyout.open()"
+    aria-haspopup="menu"
+    (mouseenter)="flyout.show()"
+    (mouseleave)="flyout.scheduleHide()"
+    (click)="flyout.togglePinned()"
+    (focus)="flyout.show()"
+    (keydown)="flyout.onKeydown($event)"
+  >
+    <ui-icon name="plug" [size]="16" />
+    {{ t('workspace.nav.connectors') }}
+  </button>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayOpen]="flyout.open()"
+    [cdkConnectedOverlayPositions]="positions"
+    (overlayOutsideClick)="flyout.hide()"
+    (overlayKeydown)="flyout.onKeydown($event)"
+  >
+    <div
+      class="flyout w-72 rounded-xl border border-line bg-surface p-lg shadow-floating"
+      (mouseenter)="flyout.show()"
+      (mouseleave)="flyout.scheduleHide()"
+    >
+      <connections-panel />
+    </div>
+  </ng-template>
+
+  <button
+    type="button"
+    cdkOverlayOrigin
+    #accountTrigger="cdkOverlayOrigin"
+    class="rounded-full transition-opacity hover:opacity-80"
+    [attr.aria-label]="t('workspace.nav.account')"
+    [attr.aria-expanded]="account.open()"
+    aria-haspopup="menu"
+    (mouseenter)="account.show()"
+    (mouseleave)="account.scheduleHide()"
+    (click)="account.togglePinned()"
+    (focus)="account.show()"
+    (keydown)="account.onKeydown($event)"
+  >
+    <ui-avatar [name]="store.profile().name" [size]="32" />
+  </button>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="accountTrigger"
+    [cdkConnectedOverlayOpen]="account.open()"
+    [cdkConnectedOverlayPositions]="positions"
+    (overlayOutsideClick)="account.hide()"
+    (overlayKeydown)="account.onKeydown($event)"
+  >
+    <div
+      class="flyout w-64 rounded-xl border border-line bg-surface py-md shadow-floating"
+      (mouseenter)="account.show()"
+      (mouseleave)="account.scheduleHide()"
+    >
+      <div class="px-lg pb-md">
+        <p class="truncate text-body-sm font-semibold text-ink">{{ store.profile().name }}</p>
+        <p class="truncate text-body-sm text-ink-muted">{{ store.profile().email }}</p>
+        <p class="mt-xs truncate text-label-caps uppercase text-ink-subtle">
+          {{ store.profile().role }}
+        </p>
+      </div>
+
+      <a
+        routerLink="/workspace/profile"
+        class="flex items-center gap-sm px-lg py-sm text-body-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+        (click)="account.hide()"
+      >
+        <ui-icon name="user" [size]="16" />
+        {{ t('workspace.account.profile') }}
+      </a>
+      <a
+        routerLink="/workspace/settings"
+        class="flex items-center gap-sm px-lg py-sm text-body-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+        (click)="account.hide()"
+      >
+        <ui-icon name="settings" [size]="16" />
+        {{ t('workspace.account.settings') }}
+      </a>
+      <button
+        type="button"
+        class="flex w-full items-center gap-sm px-lg py-sm text-left text-body-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-primary"
+        (click)="signOut()"
+      >
+        <ui-icon name="log-out" [size]="16" />
+        {{ t('workspace.account.signOut') }}
+      </button>
+    </div>
+  </ng-template>
+</header>

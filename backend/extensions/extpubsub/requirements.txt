@@ -1,0 +1,4 @@
+redis>=5.0
+aiomqtt>=2.0
+pydantic>=2.0
+xcore @ git+https://github.com/traoreera/xcore.git

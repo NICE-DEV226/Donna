@@ -1,0 +1,9 @@
+name: googleService
+version: "1.0.0"
+entry_class: service:GoogleServiceClient
+description: >
+  Extension XCore d'accès Gmail et Google Calendar au nom d'un utilisateur
+  ayant lié son compte Google. Stateless — chaque appel reçoit un
+  access_token déjà valide (résolu et rafraîchi par le plugin auth).
+homepage: https://github.com/traoreera/googleService
+repository: https://github.com/traoreera/googleService

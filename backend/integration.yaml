@@ -1,0 +1,243 @@
+app:
+  name: .
+  env: development
+  debug: true
+  dotenv: .env
+  secret_key: "748c5c7f02a5c7b2874f21e4de5852818b2f056e89b7be82c5ba5aaedf0e9b54"
+  plugin_prefix: "/app"
+  plugin_tags: []
+  server_key: "57c305f09cc236fd2831f1001e3f5f6a42f167976f8f4dd2e6f9bd1a4673da6a"
+  server_key_iterations: 100000
+
+  fastapi:
+    title: "."
+    version: "0.1.0"
+    docs_url: "/docs"
+    redoc_url: "/redoc"
+    openapi_url: "/openapi.json"
+    redirect_slashes: true
+
+  server:
+    host: "0.0.0.0"
+    port: 8000
+    workers: 1
+    reload: true
+    log_level: "DEBUG"
+    proxy_headers: true
+    forwarded_allow_ips: "*"
+
+plugins:
+  directory: ./app
+  secret_key: "57c305f09cc236fd2831f1001e3f5f6a42f167976f8f4dd2e6f9bd1a4673da6a"
+  strict_trusted: false
+  interval: 10
+  entry_point: src/main.py
+
+services:
+  databases:
+    db:
+      type: sqlasync
+      url: sqlite+aiosqlite:///data/db.sqlite3
+      echo: false
+      connect_args:
+        timeout: 30
+  cache:
+    backend: memory
+    ttl: 300
+    max_size: 1000
+
+  scheduler:
+    enabled: false
+    backend: memory
+    timezone: UTC
+
+  xworker:
+    enabled: true
+    name: donna
+    broker_url: redis://localhost:6379/2
+    result_backend: redis://localhost:6379/3
+    task_default_queue: rag
+    queues:
+      - rag
+    modules:
+      - app.rag.src.tasks
+      - app.chat.src.tasks
+
+  extensions:
+    rag:
+      module: extensions.rag.service:RagService
+      config:
+        db_url: sqlite+aiosqlite:///data/db.sqlite3
+        ollama_base_url: http://localhost:11434
+        embed_model: nomic-embed-text
+        embed_dim: 768   # nomic-embed-text produit du 768-d — voir extensions/rag/service.py docstring
+        rerank_enabled: true   # bge-reranker-v2-m3 ONNX — désactiver si ressources limitées
+    storage:
+      module: extensions.extxstorage.main:StorageService
+      config:
+        backend: local
+        max_size_mb: 25
+        allowed_extensions:
+          - .png
+          - .jpg
+          - .jpeg
+          - .gif
+          - .webp
+          - .pdf
+          - .docx
+          - .xlsx
+          - .pptx
+          - .zip
+          - .txt
+          - .md
+          - .wav
+          - .mp3
+          - .m4a
+          - .ogg
+          - .webm
+          - .flac
+        local:
+          path: data/storage
+    email:
+      module: extensions.xmailler.main:EmailService
+      config:
+        smtp_host: ${XAUTH_SMTP_HOST}
+        smtp_port: ${XAUTH_SMTP_PORT}
+        smtp_user: ${XAUTH_SMTP_USER}
+        smtp_password: ${XAUTH_SMTP_PASSWORD}
+        from_address: ${XAUTH_SMTP_FROM}
+        from_name: ${XAUTH_SMTP_FROM_NAME}
+        use_tls: ${XAUTH_SMTP_USE_TLS}
+        timeout: 10
+        max_retries: 3
+        queue_size: 100
+    pubsub:
+      module: extensions.extpubsub.service:PubSubClient
+      config:
+        provider: redis
+        redis:
+          url: ${PUBSUB_REDIS_URL}
+          heartbeat: 0.01
+          max_connections: 100
+    websocket:
+      module: extensions.xwebsocket.main:WsManager
+      config:
+        channel:
+          - user
+          - admin
+          - broadcast
+          - platform
+    google:
+      module: extensions.google_service.service:GoogleServiceClient
+      config:
+        timeout: 10
+    mcp_bridge:
+      module: extensions.mcp_bridge.service:McpBridgeService
+      config:
+        servers:
+          word:
+            command: /home/eliezer/devs/bots/mcp/word/.venv/bin/python
+            args: ["/home/eliezer/devs/bots/mcp/word/word_mcp_server.py"]
+            cwd: /home/eliezer/devs/donna/backend/data/mcp_documents/word
+            env:
+              PYTHONPATH: /home/eliezer/devs/bots/mcp/word
+            # TEMPORAIRE (test PDF/excel/reconnexion sous contrainte de quota
+            # LLM) — liste normale commentée ci-dessous, à restaurer après.
+            # - add_heading
+            # - add_picture
+            # - add_table
+            # - add_page_break
+            # - insert_numbered_list_near_text
+            # - format_text
+            # - format_table
+            # - convert_to_pdf
+            # - get_document_text
+            # - get_document_outline
+            # - list_available_documents
+            include:
+              - create_document
+              - add_paragraph
+            path_params: [filename]   # isolation par tenant — voir McpBridgeService._namespaced_arguments
+          excel:
+            command: /home/eliezer/devs/bots/mcp/excel/.venv/bin/python
+            args: ["/home/eliezer/devs/bots/mcp/excel/src/mcp_excel_server/__main__.py", "stdio"]
+            cwd: /home/eliezer/devs/donna/backend/data/mcp_documents/excel
+            env:
+              PYTHONPATH: /home/eliezer/devs/bots/mcp/excel/src
+              # Par défaut le serveur préfixe tout chemin relatif par
+              # "excel_files/" (EXCEL_MCP_FOLDER) — désactivé ici pour que
+              # les chemins namespacés par tenant (voir path_params
+              # ci-dessous) résolvent directement sous cwd, comme word/pdf.
+              EXCEL_MCP_FOLDER: "."
+            # TEMPORAIRE (test sous contrainte de quota LLM) — liste normale
+            # commentée ci-dessous, à restaurer après.
+            # - EXCEL_MCP_create_worksheet
+            # - EXCEL_MCP_merge_cells
+            # - EXCEL_MCP_get_workbook_info
+            # EXCEL_MCP_list_workbooks exclu en permanence : ne prend aucun
+            # paramètre de chemin, donc impossible à isoler par tenant.
+            include:
+              - EXCEL_MCP_create_workbook
+              - EXCEL_MCP_write_workbook_data
+            path_params: [filename, filepath]   # deux noms différents selon l'outil
+          pdf:
+            command: uvx
+            args: ["mcp-pdf"]
+            cwd: /home/eliezer/devs/donna/backend/data/mcp_documents/pdf
+            env:
+              PYTHONWARNINGS: ignore   # une lib (PyMuPDF) écrit un warning sur stdout au démarrage, ce qui casse le parsing JSON-RPC du client MCP
+            # TEMPORAIRE (test sous contrainte de quota LLM) — liste normale
+            # commentée ci-dessous, à restaurer après.
+            # - documentassembly__merge_pdfs
+            # - formmanagement__create_form_pdf
+            # - formmanagement__fill_form_pdf
+            include:
+              - imageprocessing__markdown_to_pdf
+            path_params: [output_path, input_path, markdown_path]
+
+observability:
+  logging:
+    level: DEBUG
+    format: "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+    file: log/app.log
+    max_bytes: 10485760
+    backup_count: 5
+  metrics:
+    enabled: false
+    backend: memory
+    prefix: .
+  tracing:
+    enabled: false
+    backend: noop
+    service_name: .
+    endpoint: null
+
+security:
+  allowed_imports:
+    - fastapi
+    - json
+    - re
+    - math
+    - datetime
+    - typing
+    - dataclasses
+    - enum
+    - functools
+    - collections
+    - hashlib
+    - base64
+    - asyncio
+    - logging
+    - uuid
+    - pydantic
+  forbidden_imports: []
+  rate_limit_default:
+    calls: 100
+    period_seconds: 60
+
+marketplace:
+  # Toujours inclure le schéma — utilisée telle quelle comme base d'URL HTTP
+  # par xcli et xcore.marketplace.MarketplaceClient.
+  url: "https://marketplace.xcorehub.dev"
+  timeout: 10
+  cache_ttl: 300

@@ -1,0 +1,127 @@
+<div *transloco="let t" class="mx-auto flex max-w-hero flex-col gap-xxl px-lg py-xl">
+  <h1 class="text-headline-lg text-ink">{{ t('workspace.settings.title') }}</h1>
+
+  <!-- Méthodes de connexion : un compte créé par email/mdp peut aussi lier Google. -->
+  <section>
+    <h2 class="text-headline-md text-ink">{{ t('workspace.settings.account.title') }}</h2>
+    <p class="mt-sm max-w-measure text-body-sm text-ink-muted">
+      {{ t('workspace.settings.account.body') }}
+    </p>
+
+    <ul class="mt-lg flex flex-col gap-sm">
+      <li class="flex flex-wrap items-center gap-md rounded-xl border border-line bg-surface p-lg">
+        <ui-icon name="shield-check" [size]="20" class="shrink-0 text-ink-muted" />
+
+        <div class="min-w-0 grow">
+          <p class="text-body-md font-semibold text-ink">
+            {{ t('workspace.settings.account.google') }}
+          </p>
+          <p class="text-body-sm text-ink-muted">
+            @if (isGoogleLinked()) {
+              {{ t('workspace.settings.account.linkedAs', { email: googleAccount()?.provider_email }) }}
+            } @else {
+              {{ t('workspace.settings.account.notLinked') }}
+            }
+          </p>
+        </div>
+
+        @if (linkedAccounts()) {
+          @if (isGoogleLinked()) {
+            <button type="button" uiButton="secondary" size="sm" (click)="unlinkGoogle()">
+              {{ t('workspace.settings.account.unlink') }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              uiButton="primary"
+              size="sm"
+              [disabled]="linkingGoogle()"
+              (click)="linkGoogle()"
+            >
+              {{ t('workspace.settings.account.link') }}
+            </button>
+          }
+        }
+      </li>
+    </ul>
+  </section>
+
+  <!-- Connecteurs : la section qui donne sa valeur à « elle ne lit que ce que vous accordez ». -->
+  <section>
+    <h2 class="text-headline-md text-ink">{{ t('workspace.settings.connectors.title') }}</h2>
+    <p class="mt-sm max-w-measure text-body-sm text-ink-muted">
+      {{ t('workspace.settings.connectors.body') }}
+    </p>
+
+    <ul class="mt-lg flex flex-col gap-sm">
+      @for (connection of store.connections(); track connection.key) {
+        <li
+          class="flex flex-wrap items-center gap-md rounded-xl border border-line bg-surface p-lg"
+        >
+          <ui-icon [name]="icon(connection.icon)" [size]="20" class="shrink-0 text-ink-muted" />
+
+          <div class="min-w-0 grow">
+            <p class="text-body-md font-semibold text-ink">
+              {{ t('workspace.connections.' + connection.key) }}
+            </p>
+            <p class="text-body-sm text-ink-muted">
+              {{ t('workspace.connectorsList.' + connection.key + '.detail') }}
+            </p>
+          </div>
+
+          <span
+            class="text-body-sm"
+            [class.text-success]="connection.connected"
+            [class.text-ink-subtle]="!connection.connected"
+          >
+            {{
+              connection.connected
+                ? t('workspace.settings.connectors.connected')
+                : t('workspace.settings.connectors.disconnected')
+            }}
+          </span>
+
+          <button
+            type="button"
+            [uiButton]="connection.connected ? 'secondary' : 'primary'"
+            size="sm"
+            (click)="store.toggleConnection(connection.key)"
+          >
+            {{
+              connection.connected
+                ? t('workspace.settings.connectors.disconnect')
+                : t('workspace.settings.connectors.connect')
+            }}
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section>
+    <h2 class="text-headline-md text-ink">{{ t('workspace.settings.language.title') }}</h2>
+    <p class="mt-sm max-w-measure text-body-sm text-ink-muted">
+      {{ t('workspace.settings.language.body') }}
+    </p>
+    <div class="mt-lg">
+      <language-switch />
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-headline-md text-ink">{{ t('workspace.settings.memory.title') }}</h2>
+    <p class="mt-sm max-w-measure text-body-sm text-ink-muted">
+      {{ t('workspace.settings.memory.body', { count: store.documentCount() }) }}
+    </p>
+    <button
+      type="button"
+      uiButton="secondary"
+      size="sm"
+      class="mt-lg"
+      [disabled]="store.documentCount() === 0"
+      (click)="store.purgeMemory()"
+    >
+      {{ t('workspace.settings.memory.purge') }}
+    </button>
+  </section>
+</div>

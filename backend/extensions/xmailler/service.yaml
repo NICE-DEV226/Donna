@@ -1,0 +1,9 @@
+name: xmailler
+version: "1.0.0"
+entry_class: main:EmailService
+description: >
+  Extension XCore d'envoi d'email asynchrone via SMTP.
+  Supporte l'envoi direct, les templates HTML intégrés, l'envoi en masse
+  et une file d'envoi fire-and-forget.
+homepage: https://github.com/xcore-team/xmailler
+repository: https://github.com/xcore-team/xmailler

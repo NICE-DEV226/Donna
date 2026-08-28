@@ -1,0 +1,101 @@
+<ng-container *transloco="let t">
+  <!--
+    Le rail ne porte que le bouton. Tout le reste vit dans un panneau qui se
+    déploie par-dessus le contenu : la zone de conversation ne bouge jamais.
+  -->
+  <div class="flex h-full w-16 flex-col items-center bg-transparent py-lg">
+    <!--
+      Le survol n'ouvre le panneau que depuis l'ICÔNE, pas depuis le rail :
+      sans quoi le simple fait de longer le bord gauche de l'écran le déclenche.
+    -->
+    <button
+      type="button"
+      cdkOverlayOrigin
+      #trigger="cdkOverlayOrigin"
+      class="flex size-10 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-raised hover:text-primary"
+      [attr.aria-label]="t('workspace.nav.expand')"
+      [attr.aria-expanded]="flyout.open()"
+      aria-haspopup="menu"
+      (mouseenter)="flyout.show()"
+      (mouseleave)="flyout.scheduleHide()"
+      (click)="flyout.togglePinned()"
+      (focus)="flyout.show()"
+      (keydown)="flyout.onKeydown($event)"
+    >
+      <ui-icon name="menu" [size]="20" />
+    </button>
+  </div>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayOpen]="flyout.open()"
+    [cdkConnectedOverlayPositions]="positions"
+    (overlayOutsideClick)="flyout.hide()"
+    (overlayKeydown)="flyout.onKeydown($event)"
+  >
+    <nav
+      class="flyout flex w-64 flex-col rounded-xl border border-line bg-surface py-md shadow-floating"
+      [attr.aria-label]="t('workspace.nav.recent')"
+      (mouseenter)="flyout.show()"
+      (mouseleave)="flyout.scheduleHide()"
+    >
+      <a
+        routerLink="/"
+        class="donna-lockup mx-md mb-md inline-flex items-center gap-sm text-body-md font-bold tracking-tight text-primary"
+        aria-label="DONNA"
+      >
+        <donna-mark [size]="26" />
+        DONNA
+      </a>
+
+      <button
+        type="button"
+        class="mx-md flex h-10 items-center gap-sm rounded-lg border border-line px-sm text-body-sm text-ink transition-colors hover:border-primary/40 hover:text-primary"
+        (click)="startNewChat()"
+      >
+        <ui-icon name="square-pen" [size]="18" />
+        {{ t('workspace.nav.newChat') }}
+      </button>
+
+      <p class="mt-lg mb-sm px-lg text-label-caps uppercase text-ink-subtle">
+        {{ t('workspace.nav.recent') }}
+      </p>
+      <ul class="flex flex-col px-md">
+        @for (conversation of store.conversations(); track conversation.id) {
+          @let label = store.conversationTitle(conversation);
+          <li>
+            <button
+              type="button"
+              class="flex w-full items-center gap-sm rounded-lg px-sm py-sm text-left text-body-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+              [class.bg-surface-sunken]="store.activeConversationId() === conversation.id"
+              [class.text-ink]="store.activeConversationId() === conversation.id"
+              (click)="openConversation(conversation)"
+            >
+              <ui-icon name="message-square" [size]="16" class="shrink-0" />
+              <span class="truncate">
+                {{ label.key ? t(label.key) : label.text || t('workspace.conversations.untitled') }}
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <ul class="mt-lg flex flex-col px-md">
+        @for (action of actions; track action.key) {
+          <li>
+            <a
+              [routerLink]="action.route"
+              [fragment]="action.fragment"
+              class="flex w-full items-center gap-sm rounded-lg px-sm py-sm text-left text-body-sm text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+              (click)="flyout.hide()"
+            >
+              <ui-icon [name]="action.icon" [size]="18" class="shrink-0" />
+              {{ t(action.key) }}
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+  </ng-template>
+</ng-container>

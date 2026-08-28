@@ -1,0 +1,56 @@
+{
+  "xauth": {
+    "installed_at": "2026-08-26T10:53:03.475268+00:00",
+    "kind": "plugin",
+    "ref": "v1.0.0",
+    "repository": "https://github.com/xcore-team/xauth",
+    "slug": "xauth",
+    "source": "marketplace",
+    "version": "1.0.0"
+  },
+  "xpulses": {
+    "installed_at": "2026-08-26T10:53:34.757976+00:00",
+    "kind": "plugin",
+    "ref": "v0.1.0",
+    "repository": "https://github.com/xcore-team/Xpulses",
+    "slug": "xpulses",
+    "source": "marketplace",
+    "version": "0.1.0"
+  },
+  "google_service": {
+    "installed_at": "2026-08-26T10:53:15+00:00",
+    "kind": "extension",
+    "ref": "v1.0.0",
+    "repository": "https://github.com/traoreera/googleService",
+    "slug": "googleService",
+    "source": "marketplace",
+    "version": "1.0.0"
+  },
+  "xwebsocket": {
+    "installed_at": "2026-08-26T10:53:27+00:00",
+    "kind": "extension",
+    "ref": "v1.0.0",
+    "repository": "https://github.com/xcore-team/xwebsocket",
+    "slug": "xwebsocket",
+    "source": "marketplace",
+    "version": "1.0.0"
+  },
+  "extpubsub": {
+    "installed_at": "2026-08-26T10:56:55+00:00",
+    "kind": "extension",
+    "ref": "v1.0.0",
+    "repository": "https://github.com/traoreera/extpubsub",
+    "slug": "extpubsub",
+    "source": "marketplace",
+    "version": "1.0.0"
+  },
+  "xmailler": {
+    "installed_at": "2026-08-26T11:05:01+00:00",
+    "kind": "extension",
+    "ref": "v1.0.0",
+    "repository": "https://github.com/xcore-team/xmailler",
+    "slug": "xmailler",
+    "source": "marketplace",
+    "version": "1.0.0"
+  }
+}

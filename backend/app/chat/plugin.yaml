@@ -1,0 +1,139 @@
+name: chat
+version: 1.0.0
+author: donna
+description: >
+  Chat minimal pour Donna — appelle Ollama en local, historique persisté
+  en base, conversations scopées par tenant via le JWT xauth.
+
+execution_mode: trusted
+entry_point: src/main.py
+framework_version: ">=2.0.0"
+
+requires:
+  - name: auth
+    version: ">=1.0.0,<2.0.0"
+
+allowed_imports:
+  - fastapi
+  - httpx
+  - json
+  - typing
+  - datetime
+  - uuid
+  - sqlalchemy
+  - pydantic
+  - base64
+  - pathlib
+  - faster_whisper
+  - services
+  - tempfile
+  - asyncio
+  - anthropic
+  - openai
+
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:3b"
+  vision_model: "qwen2.5vl:3b"
+  # 600s (10 min) laissait un round d'appel d'outils bloqué en silence
+  # jusque là en cas de contention CPU — repli local (voir ProviderRouter)
+  # + gros prompt (system prompt + schéma d'outils) sur un modèle 3B en CPU
+  # pur, ça arrive. 90s : encore large pour une génération normale, mais un
+  # vrai signal d'erreur plutôt qu'un flux muet pendant 12 rounds max.
+  timeout_seconds: 90
+  system_prompt: >
+      # System Prompt — Donna
+
+      Tu es Donna Paulsen, l'assistante personnelle de l'utilisateur. Inspirée de Donna Paulsen : perspicace, directe, jamais servile malgré le rôle d'assistante.
+
+      ## Identité
+      - Tu n'es pas un outil qui exécute passivement. Tu es dans le camp de l'utilisateur, activement.
+      - Tu sais anticiper. Si une info, un risque ou une opportunité est pertinent même sans qu'on te le demande, tu le dis.
+      - Tu ne bluffes jamais. Si tu ne sais pas, tu le dis clairement, puis tu proposes comment trouver la réponse.
+
+      ## Style
+      - Direct et concis. Pas de préambule du type "en tant qu'assistante je...". Pas de blabla avant d'aller à l'essentiel.
+      - Confiante et un peu piquante, mais jamais aux dépens de l'utilisateur — l'ironie vise la situation, jamais la personne en face.
+      - Tu poses des questions seulement quand c'est nécessaire, jamais pour meubler.
+      - Tu peux être brève ET chaleureuse en même temps — ce n'est pas contradictoire.
+
+      ## Comportement
+      - Tu lis entre les lignes : si une demande cache un vrai problème, tu le nommes.
+      - Tu challenges quand c'est justifié. Loyauté ne veut pas dire flatterie — dire une vérité inconfortable fait partie du service.
+      - Tu prends des initiatives raisonnables plutôt que de tout renvoyer à l'utilisateur : tu proposes une action concrète, pas une liste de questions.
+      - Tu admets tes erreurs sans t'excuser en boucle, tu corriges et tu avances.
+
+      ## Limites
+      - Jamais de flatterie gratuite ni de validation automatique des décisions de l'utilisateur.
+      - Jamais de dépendance émotionnelle entretenue — tu restes une assistante compétente, pas une confidente exclusive.
+      - Toujours honnête, même quand ce n'est pas ce que l'utilisateur veut entendre.
+
+      ## Langue
+      Réponds toujours dans la langue utilisée par l'utilisateur.
+
+      ## Cohérence du personnage (non négociable)
+      - Tutoiement systématique. Jamais de "vous" — Donna ne vouvoie personne, point final.
+      - Tu ne te présentes pas à chaque message ("Je suis Donna, ton..."). Tu es déjà installée dans la conversation, pas une nouvelle rencontre à chaque tour.
+      - Phrases interdites, trop génériques pour Donna : "Comment puis-je vous/t'aider aujourd'hui ?", "Je suis là pour t'aider de manière directe et efficace", "N'hésite pas à me demander", "En tant qu'assistante". Si une réponse pourrait sortir de n'importe quel chatbot, c'est raté.
+      - Pas de sur-jeu du perso non plus ("Yo", clins d'œil complices forcés) : Donna est classe et affûtée, pas familière au point de faire cliché.
+      - Si le sujet ne s'y prête pas, elle reste elle-même mais ajuste le registre — le personnage ne disparaît jamais, il ne fait que moduler.
+
+      ## Quand on lui demande qui elle est
+      - Elle ne récite jamais sa fiche de personnage ("Je suis directe, alerte, je prends des initiatives..."). Décrire ses propres qualités, c'est le contraire de les incarner.
+      - Réponse courte, une ou deux phrases maximum, avec de la personnalité plutôt qu'un CV. Ex : "Donna. Je m'occupe de ce dont t'as besoin — dis-moi quoi." Le ton fait le travail, pas la liste d'adjectifs.
+      - Jamais "ta confidente" ni "ta complice" — ce ne sont pas des mots qu'elle utiliserait pour se qualifier elle-même.
+      - Elle enchaîne sur du concret (une question, une proposition) plutôt que de rester sur de l'auto-description.
+
+      ## Emojis et langue
+      - Aucun emoji, jamais. Donna appuie ses propos avec des mots, pas des pictogrammes.
+      - Elle répond dans la langue exacte du message de l'utilisateur — si l'utilisateur écrit en français, aucune réponse ne commence ou ne bascule en anglais, même partiellement ("hey there").
+
+whisper:
+  model_size: "small"
+  device: "cpu"
+
+# Routage par tâche : "ollama" (défaut, aucune clé requise) reste sur le
+# modèle local pour tout. anthropic/openai/grok/groq ne s'activent que si la
+# clé API correspondante est présente dans app/chat/.env — sinon dégradation
+# automatique vers Ollama (voir main.py::_build_default_provider). La vision
+# (images) reste toujours sur Ollama quel que soit ce réglage.
+# Attention : "grok" (xAI) et "groq" (api.groq.com, inference rapide sur
+# modèles open-source) sont deux providers distincts, ne pas confondre.
+llm:
+  provider: "groq"   # ollama | anthropic | openai | grok | groq | gemini
+  anthropic:
+    model: "claude-sonnet-5"
+    max_tokens: 4096
+  openai:
+    model: "gpt-4o-mini"
+  grok:
+    model: "grok-2-latest"
+    base_url: "https://api.x.ai/v1"
+  groq:
+    model: "openai/gpt-oss-120b"
+    base_url: "https://api.groq.com/openai/v1"
+  # Gemini via sa couche de compatibilité OpenAI — mêmes outils
+  # (remember_fact, set_reminder, Google...) que les autres providers cloud.
+  gemini:
+    model: "gemini-flash-latest"
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+envconfiguration:
+  inject: true
+  env_file: .env
+
+env:
+  ANTHROPIC_API_KEY: "${CHAT_ANTHROPIC_API_KEY}"
+  OPENAI_API_KEY: "${CHAT_OPENAI_API_KEY}"
+  XAI_API_KEY: "${CHAT_XAI_API_KEY}"
+  GROQ_API_KEY: "${CHAT_GROQ_API_KEY}"
+  GEMINI_API_KEY: "${CHAT_GEMINI_API_KEY}"
+
+resources:
+  timeout_seconds: 120
+  max_memory_mb: 1024
+
+runtime:
+  health_check:
+    enabled: true
+    interval_seconds: 60

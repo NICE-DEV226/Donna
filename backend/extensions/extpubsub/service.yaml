@@ -1,0 +1,9 @@
+name: extpubsub
+version: "1.0.0"
+entry_class: service:PubSubClient
+description: >
+  Extension XCore de messagerie Pub/Sub multi-provider (Redis, MQTT/HiveMQ,
+  mémoire) avec streaming SSE fusionné multi-canal et inbox différée par
+  utilisateur.
+homepage: https://github.com/traoreera/extpubsub
+repository: https://github.com/traoreera/extpubsub

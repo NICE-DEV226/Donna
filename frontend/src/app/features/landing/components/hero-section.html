@@ -1,0 +1,31 @@
+<section *transloco="let t" class="relative overflow-x-clip border-b border-line">
+  <!-- Trame de points burgundy, estompée au centre. Purement CSS. -->
+  <div class="dot-grid pointer-events-none absolute inset-0" aria-hidden="true"></div>
+
+  <div class="relative mx-auto max-w-page px-lg py-xl lg:py-xxl">
+    <div
+      uiReveal
+      class="mx-auto max-w-hero rounded-xl border border-line bg-surface px-lg py-xl text-center shadow-floating sm:px-xl sm:py-xxl"
+    >
+      <p class="mb-md text-label-caps text-primary">{{ t('hero.eyebrow') }}</p>
+
+      <h1 class="text-mobile-headline text-ink sm:text-display lg:text-display-lg">
+        {{ t('hero.title') }}
+      </h1>
+
+      <p class="mx-auto mt-lg max-w-measure text-body-lg text-ink-muted">
+        {{ t('hero.subtitle') }}
+      </p>
+
+      <div class="mt-xl flex flex-col justify-center gap-md sm:flex-row">
+        <a routerLink="/signup" uiButton>
+          <google-mark />
+          {{ t('hero.ctaPrimary') }}
+        </a>
+        <a href="#how" uiButton="secondary">{{ t('hero.ctaSecondary') }}</a>
+      </div>
+
+      <p class="mt-lg text-body-sm text-ink-subtle">{{ t('hero.trust') }}</p>
+    </div>
+  </div>
+</section>
