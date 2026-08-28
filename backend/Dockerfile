@@ -34,7 +34,7 @@ RUN uv sync --frozen --no-install-project --no-dev
 COPY . .
 RUN uv sync --frozen --no-dev
 
-RUN chmod +x docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh & 
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
@@ -50,4 +50,4 @@ ENTRYPOINT ["./docker-entrypoint.sh"]
 # Service par défaut : l'API. Le worker Celery (RAG/rappels) est un service
 # Dokploy SÉPARÉ pointant sur cette même image, avec ce CMD écrasé — voir le
 # README déployé à côté de ce Dockerfile pour la commande exacte.
-CMD ["/app/docker-start.sh"]
+CMD ["./docker-start.sh"]

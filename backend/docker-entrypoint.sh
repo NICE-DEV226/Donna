@@ -15,6 +15,7 @@ set -e
 # Idempotent — ne touche jamais un .env déjà présent : utile si quelqu'un
 # monte un vrai .env en volume plutôt que de compter sur les variables
 # d'environnement de la plateforme.
+chmod +x docker-start.sh
 reconstruct() {
   template="$1"
   target="$2"
