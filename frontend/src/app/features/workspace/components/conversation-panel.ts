@@ -16,6 +16,8 @@ import { UiIcon } from '../../../shared/ui/ui-icon';
 import { UiInput } from '../../../shared/ui/ui-input';
 import { UiMarkdown } from '../../../shared/ui/ui-markdown';
 import { WorkspaceStore } from '../workspace.store';
+import { containsStructureTags } from '../../../core/chat/response-parser';
+import { ExpandableResponseComponent } from './expandable-response';
 import { DonnaInterjection } from './donna-interjection';
 import { ResearchTrace } from './research-trace';
 import type { ComposerSubmission } from './workspace-composer';
@@ -31,6 +33,7 @@ import { WorkspaceComposer } from './workspace-composer';
     TranslocoDirective,
     DonnaMark,
     DonnaInterjection,
+    ExpandableResponseComponent,
     ResearchTrace,
     UiButton,
     UiChip,
@@ -45,6 +48,9 @@ export class ConversationPanel {
   protected readonly store = inject(WorkspaceStore);
   private readonly transloco = inject(TranslocoService);
 
+  /** Vrai si un texte de message contient les balises structurées (<thinking>/…). */
+  protected readonly containsStructureTags = containsStructureTags;
+
   /** Index des points de l'indicateur de réflexion, pour décaler leur pulsation. */
   protected readonly dots = [0, 1, 2];
 
@@ -52,7 +58,7 @@ export class ConversationPanel {
    *  incluse, pas seulement pendant le streaming), et pendant qu'un flux écrit —
    *  mais seulement si on est déjà près du bas, pour ne pas arracher la lecture
    *  à quelqu'un qui aurait remonté l'historique. */
-  private readonly scrollHost = viewChild.required<ElementRef<HTMLElement>>('scrollHost');
+  private readonly scrollHost = viewChild<ElementRef<HTMLElement>>('scrollHost');
   private previousUserMessages = 0;
 
   constructor() {

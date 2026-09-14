@@ -1,0 +1,67 @@
+<section class="expandable-response flex flex-col gap-md">
+  @if (parsed().thinking; as thinking) {
+    <details
+      class="er-block rounded-lg border border-line bg-surface [&:not([open])]:hover:border-ink-subtle"
+      [open]="thinkingOpen()"
+      (toggle)="toggleThinking($any($event.target).open)"
+    >
+      <summary
+        class="er-header flex cursor-pointer select-none items-center gap-sm px-md py-sm text-body-sm font-medium text-ink transition-colors hover:text-primary"
+      >
+        <span class="er-chevron shrink-0" [class.er-open]="thinkingOpen()">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path
+              d="m6 9 6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        🧠 Réflexion
+      </summary>
+      <div class="er-body">
+        <div class="er-body-inner border-t border-line px-md py-sm text-body-sm text-ink-muted">
+          {{ thinking }}
+        </div>
+      </div>
+    </details>
+  }
+
+  @if (parsed().search; as search) {
+    <details
+      class="er-block rounded-lg border border-line bg-surface [&:not([open])]:hover:border-ink-subtle"
+      [open]="searchOpen()"
+      (toggle)="toggleSearch($any($event.target).open)"
+    >
+      <summary
+        class="er-header flex cursor-pointer select-none items-center gap-sm px-md py-sm text-body-sm font-medium text-ink transition-colors hover:text-primary"
+      >
+        <span class="er-chevron shrink-0" [class.er-open]="searchOpen()">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path
+              d="m6 9 6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        🔍 Recherche {{ search.query ? ' : ' + search.query : '' }}
+      </summary>
+      <div class="er-body">
+        <div class="er-body-inner border-t border-line px-md py-sm text-body-sm text-ink-muted">
+          {{ search.content }}
+        </div>
+      </div>
+    </details>
+  }
+
+  @if (parsed().answer) {
+    <div class="er-answer whitespace-pre-line text-body-lg text-ink">{{ parsed().answer }}</div>
+  }
+</section>

@@ -121,7 +121,22 @@
                       }
                     </div>
                   } @else {
-                    <div class="prose prose-sm max-w-none text-body-lg text-ink" [innerHTML]="(message.text ?? t(message.textKey ?? '')) | markdown"></div>
+                    <!--
+                      Réponse structurée : si le backend a renvoyé une réponse
+                      avec des balises <thinking>/<search>/<answer> (dont le
+                      streaming arrive par morceaux), le composant
+                      expandable-response les rend en sections repliables +
+                      réponse toujours visible. Sinon (texte classique), on
+                      garde le rendu markdown d'origine.
+                    -->
+                    @if (containsStructureTags(message.text)) {
+                      <expandable-response [content]="message.text" />
+                    } @else {
+                      <div
+                        class="prose prose-sm max-w-none text-body-lg text-ink"
+                        [innerHTML]="(message.text ?? t(message.textKey ?? '')) | markdown"
+                      ></div>
+                    }
                     @if (store.streaming() && $last) {
                       <span class="stream-cursor" aria-hidden="true"></span>
                     }
