@@ -48,18 +48,35 @@ export class ConversationPanel {
   /** Index des points de l'indicateur de réflexion, pour décaler leur pulsation. */
   protected readonly dots = [0, 1, 2];
 
-  /** Le fil se colle en bas pendant qu'un flux écrit : suivre les deltas sans que l'utilisateur ait à scroller. */
+  /** Le fil se colle en bas : à chaque NOUVEAU message envoyé (entrée utilisateur
+   *  incluse, pas seulement pendant le streaming), et pendant qu'un flux écrit —
+   *  mais seulement si on est déjà près du bas, pour ne pas arracher la lecture
+   *  à quelqu'un qui aurait remonté l'historique. */
   private readonly scrollHost = viewChild.required<ElementRef<HTMLElement>>('scrollHost');
+  private previousUserMessages = 0;
 
   constructor() {
     effect(() => {
-      void this.store.messages();
-      if (!this.store.streaming()) return;
+      const list = this.store.messages();
       const host = this.scrollHost();
       if (!host) return;
+
+      let userCount = 0;
+      for (const message of list) {
+        if (message.author === 'user') userCount++;
+      }
+      const posted = userCount > this.previousUserMessages;
+      this.previousUserMessages = userCount;
+
+      const el = host.nativeElement;
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+      if (!posted && !(this.store.streaming() && nearBottom)) return;
+
       // Laisser le DOM se stabiliser avec le dernier delta avant de mesurer.
       queueMicrotask(() => {
-        host.nativeElement.scrollTop = host.nativeElement.scrollHeight;
+        const latest = this.scrollHost();
+        if (!latest) return;
+        latest.nativeElement.scrollTop = latest.nativeElement.scrollHeight;
       });
     });
   }

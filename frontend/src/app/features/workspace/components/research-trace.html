@@ -1,13 +1,5 @@
-<details
-  *transloco="let t"
-  class="group rounded-lg border border-line bg-surface"
-  [open]="open()"
-  (toggle)="toggle($any($event.target).open)"
->
-  <summary
-    class="flex cursor-pointer items-center gap-sm px-md py-sm text-body-sm text-ink-muted transition-colors hover:text-ink"
-    [attr.aria-label]="open() ? t('workspace.research.collapse') : t('workspace.research.expand')"
-  >
+<div *transloco="let t" class="flex flex-col">
+  <p class="trace-header flex items-center gap-sm text-body-sm text-ink-muted" aria-live="polite">
     @if (live()) {
       <span class="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true"></span>
       {{ t('workspace.research.searching') }}
@@ -15,14 +7,9 @@
       <ui-icon name="file-text" [size]="14" />
       {{ t('workspace.research.done', { count: entries().length }) }}
     }
-    <ui-icon
-      name="chevron-down"
-      [size]="16"
-      class="ml-auto shrink-0 transition-transform duration-200 group-open:rotate-180"
-    />
-  </summary>
+  </p>
 
-  <ul class="flex flex-col gap-md border-t border-line px-md py-md">
+  <ul class="flex flex-col gap-md">
     @for (entry of entries(); track $index) {
       <li class="trace-in flex gap-sm">
         <ui-icon name="zap" [size]="14" class="mt-[3px] shrink-0 text-ink-subtle" />
@@ -36,4 +23,4 @@
       </li>
     }
   </ul>
-</details>
+</div>
