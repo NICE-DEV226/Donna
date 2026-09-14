@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import type { AttachmentOut } from '../../../core/chat/chat.service';
 import { DonnaMark } from '../../../shared/brand/donna-mark';
@@ -7,6 +14,7 @@ import { UiButton } from '../../../shared/ui/ui-button';
 import { UiChip } from '../../../shared/ui/ui-chip';
 import { UiIcon } from '../../../shared/ui/ui-icon';
 import { UiInput } from '../../../shared/ui/ui-input';
+import { UiMarkdown } from '../../../shared/ui/ui-markdown';
 import { WorkspaceStore } from '../workspace.store';
 import { DonnaInterjection } from './donna-interjection';
 import { ResearchTrace } from './research-trace';
@@ -28,6 +36,7 @@ import { WorkspaceComposer } from './workspace-composer';
     UiChip,
     UiIcon,
     UiInput,
+    UiMarkdown,
     WorkspaceComposer,
   ],
   templateUrl: './conversation-panel.html',
@@ -38,6 +47,22 @@ export class ConversationPanel {
 
   /** Index des points de l'indicateur de réflexion, pour décaler leur pulsation. */
   protected readonly dots = [0, 1, 2];
+
+  /** Le fil se colle en bas pendant qu'un flux écrit : suivre les deltas sans que l'utilisateur ait à scroller. */
+  private readonly scrollHost = viewChild.required<ElementRef<HTMLElement>>('scrollHost');
+
+  constructor() {
+    effect(() => {
+      void this.store.messages();
+      if (!this.store.streaming()) return;
+      const host = this.scrollHost();
+      if (!host) return;
+      // Laisser le DOM se stabiliser avec le dernier delta avant de mesurer.
+      queueMicrotask(() => {
+        host.nativeElement.scrollTop = host.nativeElement.scrollHeight;
+      });
+    });
+  }
 
   protected readonly suggestions: readonly { icon: IconName; key: string }[] = [
     { icon: 'search', key: 'workspace.suggestions.search' },

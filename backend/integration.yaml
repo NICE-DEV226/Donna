@@ -3,10 +3,15 @@ app:
   env: development
   debug: true
   dotenv: .env
-  secret_key: "748c5c7f02a5c7b2874f21e4de5852818b2f056e89b7be82c5ba5aaedf0e9b54"
+  # DEV UNIQUEMENT — valeurs factices commitées volontairement (aucun
+  # secret réel ne doit jamais entrer dans git ; la prod utilise
+  # integration.docker.yaml + ${SECRET_KEY}/${SERVER_KEY} depuis le
+  # gestionnaire de secrets Dokploy). Changer ces valeurs déconnecte juste
+  # les sessions JWT de dev (re-login), sans autre effet (strict_trusted: false).
+  secret_key: "dev-only-insecure-key-never-use-in-prod"
   plugin_prefix: "/app"
   plugin_tags: []
-  server_key: "57c305f09cc236fd2831f1001e3f5f6a42f167976f8f4dd2e6f9bd1a4673da6a"
+  server_key: "dev-only-insecure-key-never-use-in-prod"
   server_key_iterations: 100000
 
   fastapi:
@@ -28,7 +33,8 @@ app:
 
 plugins:
   directory: ./app
-  secret_key: "57c305f09cc236fd2831f1001e3f5f6a42f167976f8f4dd2e6f9bd1a4673da6a"
+  # DEV UNIQUEMENT, voir commentaire app.secret_key ci-dessus.
+  secret_key: "dev-only-insecure-key-never-use-in-prod"
   strict_trusted: false
   interval: 10
   entry_point: src/main.py
@@ -59,6 +65,10 @@ services:
     task_default_queue: rag
     queues:
       - rag
+      # Queue temps-sensible des rappels (chat.fire_reminder) — séparée de
+      # `rag` (ingestions lourdes) pour garantir le déclenchement à l'heure.
+      # Voir extensions/worker_env.py + docker-compose.yml (worker dédié).
+      - reminders
     modules:
       - app.rag.src.tasks
       - app.chat.src.tasks
@@ -68,9 +78,17 @@ services:
       module: extensions.rag.service:RagService
       config:
         db_url: sqlite+aiosqlite:///data/db.sqlite3
-        ollama_base_url: http://localhost:11434
-        embed_model: nomic-embed-text
-        embed_dim: 768   # nomic-embed-text produit du 768-d — voir extensions/rag/service.py docstring
+        # Piloté par env pour rester IDENTIQUE à la config du worker
+        # d'ingestion (extensions/worker_env.py :: RAG_EMBED_*) — impératif :
+        # provider/modèle/dimension doivent matcher, sinon la recherche
+        # vectorielle casse (dimension figée dans vec0). Vars absentes =
+        # défauts Ollama locaux (RagService gère les chaînes vides).
+        ollama_base_url: ${OLLAMA_BASE_URL}
+        embed_provider: ${RAG_EMBED_PROVIDER}
+        embed_model: ${RAG_EMBED_MODEL}
+        embed_dim: ${RAG_EMBED_DIM}
+        embed_api_key: ${RAG_EMBED_API_KEY}
+        embed_base_url: ${RAG_EMBED_BASE_URL}
         rerank_enabled: true   # bge-reranker-v2-m3 ONNX — désactiver si ressources limitées
     storage:
       module: extensions.extxstorage.main:StorageService
@@ -136,62 +154,56 @@ services:
       config:
         servers:
           word:
-            command: /home/eliezer/devs/bots/mcp/word/.venv/bin/python
-            args: ["/home/eliezer/devs/bots/mcp/word/word_mcp_server.py"]
-            cwd: /home/eliezer/devs/donna/backend/data/mcp_documents/word
+            command: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/.venv/bin/python
+            args: ["/home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/word/word_mcp_server.py"]
+            cwd: data/mcp_documents/word
             env:
-              PYTHONPATH: /home/eliezer/devs/bots/mcp/word
-            # TEMPORAIRE (test PDF/excel/reconnexion sous contrainte de quota
-            # LLM) — liste normale commentée ci-dessous, à restaurer après.
-            # - add_heading
-            # - add_picture
-            # - add_table
-            # - add_page_break
-            # - insert_numbered_list_near_text
-            # - format_text
-            # - format_table
-            # - convert_to_pdf
-            # - get_document_text
-            # - get_document_outline
-            # - list_available_documents
+              PYTHONPATH: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/word
             include:
               - create_document
               - add_paragraph
+              - add_heading
+              - add_picture
+              - add_table
+              - add_page_break
+              - insert_numbered_list_near_text
+              - format_text
+              - format_table
+              - convert_to_pdf
+              - get_document_text
+              - get_document_outline
+              - list_available_documents
             path_params: [filename]   # isolation par tenant — voir McpBridgeService._namespaced_arguments
           excel:
-            command: /home/eliezer/devs/bots/mcp/excel/.venv/bin/python
-            args: ["/home/eliezer/devs/bots/mcp/excel/src/mcp_excel_server/__main__.py", "stdio"]
-            cwd: /home/eliezer/devs/donna/backend/data/mcp_documents/excel
+            command: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/.venv/bin/python
+            args: ["/home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/excel/mcp_excel_server/__main__.py", "stdio"]
+            cwd: data/mcp_documents/excel
             env:
-              PYTHONPATH: /home/eliezer/devs/bots/mcp/excel/src
+              PYTHONPATH: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/excel
               # Par défaut le serveur préfixe tout chemin relatif par
               # "excel_files/" (EXCEL_MCP_FOLDER) — désactivé ici pour que
               # les chemins namespacés par tenant (voir path_params
               # ci-dessous) résolvent directement sous cwd, comme word/pdf.
               EXCEL_MCP_FOLDER: "."
-            # TEMPORAIRE (test sous contrainte de quota LLM) — liste normale
-            # commentée ci-dessous, à restaurer après.
-            # - EXCEL_MCP_create_worksheet
-            # - EXCEL_MCP_merge_cells
-            # - EXCEL_MCP_get_workbook_info
             # EXCEL_MCP_list_workbooks exclu en permanence : ne prend aucun
             # paramètre de chemin, donc impossible à isoler par tenant.
             include:
               - EXCEL_MCP_create_workbook
               - EXCEL_MCP_write_workbook_data
+              - EXCEL_MCP_create_worksheet
+              - EXCEL_MCP_merge_cells
+              - EXCEL_MCP_get_workbook_info
             path_params: [filename, filepath]   # deux noms différents selon l'outil
           pdf:
             command: uvx
             args: ["mcp-pdf"]
-            cwd: /home/eliezer/devs/donna/backend/data/mcp_documents/pdf
+            cwd: data/mcp_documents/pdf
             env:
               PYTHONWARNINGS: ignore   # une lib (PyMuPDF) écrit un warning sur stdout au démarrage, ce qui casse le parsing JSON-RPC du client MCP
-            # TEMPORAIRE (test sous contrainte de quota LLM) — liste normale
-            # commentée ci-dessous, à restaurer après.
-            # - documentassembly__merge_pdfs
-            # - formmanagement__create_form_pdf
-            # - formmanagement__fill_form_pdf
             include:
+              - documentassembly__merge_pdfs
+              - formmanagement__create_form_pdf
+              - formmanagement__fill_form_pdf
               - imageprocessing__markdown_to_pdf
             path_params: [output_path, input_path, markdown_path]
 

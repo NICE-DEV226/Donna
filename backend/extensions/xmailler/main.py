@@ -159,6 +159,14 @@ class EmailService(BaseService):
             to=to, subject=subject, body=body,
             is_html=is_html, cc=cc or [], bcc=bcc or [], reply_to=reply_to,
         )
+        # Fail-fast : une entrée invalide (header-injection, adresse
+        # malformée) est déterministe — inutile de la retry 3 fois avec
+        # backoff dans _send_with_retry, on refuse immédiatement.
+        try:
+            _smtp._validate_headers(msg)
+        except ValueError as exc:
+            logger.warning(f"Email refusé (entrée invalide) → {to} : {exc}")
+            return False
         return await self._send_with_retry(msg)
 
     async def send_template(

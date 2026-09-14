@@ -22,9 +22,26 @@ async def lifespan(app: FastAPI):
     await xcore.shutdown()
 
 
+# Interrupteurs docs/openapi pilotés par la config xcore (section
+# app.fastapi) : integration.yaml (dev) les expose, integration.docker.yaml
+# (prod) les met à null. Passés AU CONSTRUCTEUR car FastAPI enregistre ces
+# routes dans __init__ (un setattr après coup ne les retirerait pas) — sans
+# ce câblage, /docs restait exposé en prod quel que soit le YAML (fail-open
+# constaté à l'audit).
+_fapi_cfg = getattr(xcore, "fastapi", None) or {}
+
+
+def _docs_flag(name: str, default: str | None) -> str | None:
+    value = _fapi_cfg.get(name, default)
+    return value or None
+
+
 app = FastAPI(
     title=".",
     version="0.1.0",
+    docs_url=_docs_flag("docs_url", "/docs"),
+    redoc_url=_docs_flag("redoc_url", "/redoc"),
+    openapi_url=_docs_flag("openapi_url", "/openapi.json"),
     lifespan=lifespan,
 )
 

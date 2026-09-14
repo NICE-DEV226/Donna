@@ -163,6 +163,22 @@ class Plugin(AutoDispatchMixin, TrustedBase):
                 timeout=timeout,
             )
 
+        # OpenRouter (openrouter.ai) — concentrateur multi-modèles, API
+        # compatible OpenAI. Même client que openai/grok/groq.
+        if provider_name == "openrouter":
+            api_key = env.get("OPENROUTER_API_KEY")
+            if not api_key:
+                logger.warning("llm.provider=openrouter mais OPENROUTER_API_KEY absente — reste sur Ollama.")
+                return None
+            or_cfg = llm_cfg.get("openrouter", {})
+            return OpenAICompatProvider(
+                api_key=api_key,
+                model=or_cfg.get("model", "openrouter/auto"),
+                base_url=or_cfg.get("base_url", "https://openrouter.ai/api/v1"),
+                system_prompt=system_prompt,
+                timeout=timeout,
+            )
+
         # Gemini expose une couche de compatibilité OpenAI — même client que
         # openai/grok/groq, seuls base_url/model/clé changent.
         if provider_name == "gemini":

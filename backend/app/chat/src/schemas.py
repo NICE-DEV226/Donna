@@ -10,6 +10,17 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
 
 
+class UsageOut(BaseModel):
+    llm_calls: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    tool_rounds: int = 0
+    rag_used: bool = False
+    rag_skipped_by_gate: bool = False
+    budget_hit: bool = False
+    provider_fallbacks: int = 0
+
+
 class SourceOut(BaseModel):
     doc_id: str
     original_name: str
@@ -32,6 +43,10 @@ class ChatResponse(BaseModel):
     sources: list[SourceOut] = []
     memory_notes: list[str] = []
     attachments: list[AttachmentOut] = []
+    # Comptabilité tokens de la requête (estimation — voir usage.py) : rend
+    # le coût VISIBLE côté client pour piloter les budgets. Additif : les
+    # clients qui l'ignorent ne cassent pas.
+    usage: UsageOut | None = None
 
 
 class ConversationOut(BaseModel):

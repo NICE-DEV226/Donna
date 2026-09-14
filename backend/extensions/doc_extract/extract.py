@@ -10,6 +10,13 @@ ARCHIVE_EXTENSIONS = {".zip"}
 _MAX_ZIP_MEMBERS = 20
 _MAX_ZIP_UNCOMPRESSED_MB = 100
 
+# Plafond de sortie : même un document légitime peut produire un texte
+# immense (ex: zip de 100 Mo décompressés) — sans borne ici, la string
+# complète transite en RAM puis est rejetée plus tard par le contrôle
+# _MAX_EXTRACTED_CHARS côté route. Tronquer tôt, en le signalant.
+_MAX_EXTRACTED_CHARS = 200_000
+_TRUNCATION_MARKER = "\n\n[…texte tronqué : document trop volumineux…]"
+
 
 class ExtractionError(Exception):
     """Fichier illisible, corrompu, ou type non supporté."""
@@ -33,23 +40,27 @@ def extract_text(filename: str, content: bytes) -> str:
 
     try:
         if ext == ".pdf":
-            return _extract_pdf(content)
-        if ext == ".docx":
-            return _extract_docx(content)
-        if ext == ".xlsx":
-            return _extract_xlsx(content)
-        if ext == ".pptx":
-            return _extract_pptx(content)
-        if ext in (".txt", ".md"):
-            return content.decode("utf-8", errors="replace").strip()
-        if ext == ".zip":
-            return _extract_zip(content)
+            text = _extract_pdf(content)
+        elif ext == ".docx":
+            text = _extract_docx(content)
+        elif ext == ".xlsx":
+            text = _extract_xlsx(content)
+        elif ext == ".pptx":
+            text = _extract_pptx(content)
+        elif ext in (".txt", ".md"):
+            text = content.decode("utf-8", errors="replace").strip()
+        elif ext == ".zip":
+            text = _extract_zip(content)
+        else:
+            raise ExtractionError(f"Extraction non supportée pour '{ext}'")
     except ExtractionError:
         raise
     except Exception as exc:
         raise ExtractionError(f"Fichier '{filename}' illisible ou corrompu : {exc}") from exc
 
-    raise ExtractionError(f"Extraction non supportée pour '{ext}'")
+    if len(text) > _MAX_EXTRACTED_CHARS:
+        text = text[:_MAX_EXTRACTED_CHARS] + _TRUNCATION_MARKER
+    return text
 
 
 def _extract_pdf(content: bytes) -> str:

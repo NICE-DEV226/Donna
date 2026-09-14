@@ -13,6 +13,15 @@ from xcore.kernel.api import AuthPayload, get_current_user
 from xcore.sdk import get_logger
 
 from extensions.doc_extract.extract import ExtractionError, classify, extract_text
+from extensions.donna_settings import (
+    ENABLE_SUMMARY,
+    ENABLE_TITLE_GEN,
+    MAX_EXTRACTED_CHARS,
+    RAG_GATE_ENABLED,
+    RAG_GATE_MIN_CHARS,
+    RAG_TOP_K,
+    RERANK_MIN_SCORE,
+)
 from ..memory import (
     build_history,
     format_facts_context,
@@ -26,6 +35,15 @@ from ..memory import (
 from ..models import Attachment, Conversation, Message, PendingAction, Reminder, UserFact
 from ..providers.base import ProviderUnavailableError
 from ..providers.router import ProviderRouter
+from ..rate_limit import (
+    CHAT_CALLS_PER_MINUTE,
+    MAX_AUDIO_BYTES,
+    MAX_FILES_PER_REQUEST,
+    STREAM_CALLS_PER_MINUTE,
+    TRANSCRIBE_TIMEOUT_S,
+    UPLOAD_CALLS_PER_10MIN,
+    limit_requests,
+)
 from ..schemas import (
     AttachmentOut,
     ChatRequest,
@@ -39,6 +57,7 @@ from ..schemas import (
     RenameConversationRequest,
     SetProviderRequest,
     SourceOut,
+    UsageOut,
 )
 from ..tools import (
     ToolContext,
@@ -48,6 +67,7 @@ from ..tools import (
     run_chat_with_tools,
 )
 from ..transcribe import Transcriber, TranscriptionError
+from ..usage import RequestUsage
 
 logger = get_logger("chat.routes")
 
@@ -81,18 +101,32 @@ async def _resolve_conversation(
     return conversation
 
 
-# Score de rerank en dessous duquel un candidat n'est pas jugé pertinent par
-# le cross-encoder — évite d'injecter 5 sources dont 4 hors-sujet à chaque
-# question (le RRF seul ne sépare pas bien pertinent/non-pertinent).
-_RERANK_MIN_SCORE = 0.0
+# Mots interrogatifs forts (FR + EN) pour le gating RAG : on ne matche que
+# des mots ENTIERS (pas de sous-chaîne — "ou" matcherait "vous"). "où" accentué
+# uniquement : "ou" sans accent (= la conjonction "thé ou café") ne doit PAS
+# déclencher — un faux positif ne coûte que des tokens, mais autant l'éviter.
+# Conservative par design : un faux positif (recherche inutile) ne coûte que
+# des tokens, un faux négatif (question documentaire sautée) coûte la qualité.
+_QUESTION_WORDS = frozenset(
+    "qui quoi comment pourquoi où quand combien quel quelle quels quelles lequel laquelle".split()
+    + "who what when where why how which whose".split()
+)
 
-# Marge de sécurité, pas une limite technique d'un provider précis : le texte
-# extrait d'une pièce jointe (ex. une archive zip) s'ajoute à l'historique et
-# au contexte RAG dans le même message — un fichier trop volumineux peut
-# dépasser le budget de tokens du provider configuré et échouer en 503
-# (ProviderUnavailableError), un message technique peu actionnable pour
-# l'utilisateur. Mieux vaut refuser tôt, clairement, avant l'appel LLM.
-_MAX_EXTRACTED_CHARS = 20_000
+
+def _should_use_rag(message: str | None) -> bool:
+    """Gating RAG (DONNA_RAG_GATE_*) : saute l'embedding + le rerank + les
+    chunks pour les messages triviaux ("ok", "merci", "oui") qui ne peuvent
+    pas nécessiter la base documentaire. Ne saute QUE les messages courts
+    SANS aucun marqueur de question — tout le reste cherche normalement."""
+    if not RAG_GATE_ENABLED:
+        return True
+    text = (message or "").strip()
+    if len(text) >= RAG_GATE_MIN_CHARS:
+        return True
+    if "?" in text:
+        return True
+    words = set(text.lower().replace("’", "'").split())
+    return not words.isdisjoint(_QUESTION_WORDS) if words else False
 
 
 async def _rag_search(rag, tenant_id: str, query: str) -> list[dict]:
@@ -102,13 +136,16 @@ async def _rag_search(rag, tenant_id: str, query: str) -> list[dict]:
     pour ne pas perdre les échecs réels en silence.
     """
     try:
-        results = await rag.search(tenant_id, query, top_k=5)
+        results = await rag.search(tenant_id, query, top_k=RAG_TOP_K)
     except Exception as exc:
         logger.warning("recherche RAG échouée (dégradée, chat continue) : %s", exc)
         return []
 
     if results and "rerank_score" in results[0]:
-        results = [r for r in results if r["rerank_score"] >= _RERANK_MIN_SCORE]
+        # Filtre les candidats jugés non pertinents par le cross-encoder —
+        # évite d'injecter N sources dont N-1 hors-sujet à chaque question
+        # (le RRF seul ne sépare pas bien pertinent/non-pertinent).
+        results = [r for r in results if r["rerank_score"] >= RERANK_MIN_SCORE]
     return results
 
 
@@ -126,6 +163,92 @@ def _format_rag_context(results: list[dict]) -> dict[str, str] | None:
             "question posée, ignore-les sinon.\n\n" + "\n\n---\n\n".join(blocks)
         ),
     }
+
+
+async def _rag_search_gated(
+    rag, tenant_id: str, query: str, usage: RequestUsage
+) -> tuple[list[dict], dict | None]:
+    """Recherche RAG avec gating (voir _should_use_rag) : les messages
+    triviaux sautent l'embedding, le rerank ET le contexte (~2.5k tokens +
+    2 appels économisés à chaque "ok merci"). Les flags alimentent le ledger
+    d'usage pour mesurer l'efficacité du gate en prod (logs)."""
+    use_rag = _should_use_rag(query)
+    usage.rag_used = use_rag
+    usage.rag_skipped_by_gate = not use_rag
+    if not use_rag:
+        logger.debug("RAG sauté par le gate (message trivial)", chars=len(query or ""))
+        return [], None
+    results = await _rag_search(rag, tenant_id, query)
+    return results, _format_rag_context(results)
+
+
+async def _prepare_llm_context(
+    db,
+    rag,
+    *,
+    tenant_id: str,
+    user_id: str,
+    conversation_id: str | None,
+    title_hint: str,
+    query: str,
+    usage: RequestUsage,
+) -> tuple[str, list[dict], list[dict]]:
+    """Charge en 2 vagues parallèles tout le contexte d'un tour — remplace 6
+    allers-retours DB/HTTP séquentiels par message (conversation, RAG,
+    faits, rappels, actions, historique) :
+    - vague 1 (indépendants, asyncio.gather) : résolution conversation,
+      recherche RAG (appel HTTP embeddings, le plus lent — recouvert par les
+      lectures DB), faits, rappels en attente, actions en attente. Chaque
+      loader ouvre sa PROPRE session courte (jamais de requêtes concurrentes
+      sur une même session ; sessions refermées avant l'appel LLM, comme
+      avant — pas de verrou SQLite tenu pendant l'inférence) ;
+    - vague 2 : historique (dépend de l'id conversation résolu en vague 1).
+    L'ordre d'assemblage est IDENTIQUE à l'ancien code séquentiel :
+    [pending, reminders, facts, ...historique, rag?] — le message utilisateur
+    est ajouté par l'appelant (dernier, les providers vision y attachent les
+    images). Retourne (conversation_id_résolu, messages_sans_user, rag_results)."""
+
+    async def _load_conversation() -> str:
+        async with db.session() as session:
+            conversation = await _resolve_conversation(
+                session, conversation_id, tenant_id, user_id, title_hint
+            )
+            return conversation.id
+
+    async def _load_facts() -> dict | None:
+        async with db.session() as session:
+            return format_facts_context(await load_facts(session, tenant_id, user_id))
+
+    async def _load_reminders() -> dict | None:
+        async with db.session() as session:
+            return format_reminders_context(
+                await load_suspended_reminders(session, tenant_id, user_id)
+            )
+
+    async def _load_pending() -> dict | None:
+        async with db.session() as session:
+            return format_pending_actions_context(
+                await load_pending_actions(session, tenant_id, user_id)
+            )
+
+    async def _load_rag() -> tuple[list[dict], dict | None]:
+        return await _rag_search_gated(rag, tenant_id, query, usage)
+
+    resolved_id, facts_context, reminders_context, pending_actions_context, (rag_results, rag_context) = (
+        await asyncio.gather(_load_conversation(), _load_facts(), _load_reminders(), _load_pending(), _load_rag())
+    )
+
+    async with db.session() as session:
+        ollama_messages = await build_history(session, resolved_id)
+    # Même ordre final que l'ancien code (insert(0) successifs : facts, puis
+    # reminders devant, puis pending devant) → [pending, reminders, facts,
+    # ...historique]. L'itération est donc dans l'ordre inverse de l'affichage.
+    for extra in (facts_context, reminders_context, pending_actions_context):
+        if extra:
+            ollama_messages.insert(0, extra)
+    if rag_context:
+        ollama_messages.append(rag_context)
+    return resolved_id, ollama_messages, rag_results
 
 
 def _build_sources(results: list[dict]) -> list[SourceOut]:
@@ -227,47 +350,42 @@ def chats_router(
 ) -> APIRouter:
     router = APIRouter(tags=["chat", "agent"])
 
-    @router.post("/", summary="Send message for Donna", response_model=ChatResponse)
+    @router.post(
+        "/",
+        summary="Send message for Donna",
+        response_model=ChatResponse,
+        dependencies=[Depends(limit_requests(CHAT_CALLS_PER_MINUTE, 60.0, "chat"))],
+    )
     async def chat(
         body: ChatRequest,
         current_user: AuthPayload = Depends(get_current_user),
     ) -> ChatResponse:
         user_id = current_user["sub"]
         tenant_id = _tenant_of(current_user)
+        usage = RequestUsage()
 
-        rag_results = await _rag_search(rag, tenant_id, body.message)
-        rag_context = _format_rag_context(rag_results)
+        # Vague parallèle (conversation + RAG + mémoire) puis ajout du message
+        # utilisateur — voir _prepare_llm_context. La persistance du message
+        # reste dans une session courte dédiée, refermée AVANT l'appel LLM
+        # (qui peut prendre 30-60s) pour ne pas garder le verrou d'écriture
+        # SQLite ouvert pendant tout l'appel — sinon toute autre requête
+        # d'écriture concurrente échoue en "database is locked".
+        conversation_id, ollama_messages, rag_results = await _prepare_llm_context(
+            db,
+            rag,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            conversation_id=body.conversation_id,
+            title_hint=body.message,
+            query=body.message,
+            usage=usage,
+        )
+        ollama_messages.append({"role": "user", "content": body.message})
 
-        # Session courte : on écrit le message utilisateur et on referme AVANT
-        # d'appeler Ollama (qui peut prendre 30-60s) pour ne pas garder le
-        # verrou d'écriture SQLite ouvert pendant tout l'appel — sinon toute
-        # autre requête d'écriture concurrente échoue en "database is locked".
         async with db.session() as session:
-            conversation = await _resolve_conversation(
-                session, body.conversation_id, tenant_id, user_id, body.message
-            )
-            facts_context = format_facts_context(await load_facts(session, tenant_id, user_id))
-            reminders_context = format_reminders_context(
-                await load_suspended_reminders(session, tenant_id, user_id)
-            )
-            pending_actions_context = format_pending_actions_context(
-                await load_pending_actions(session, tenant_id, user_id)
-            )
-            ollama_messages = await build_history(session, conversation.id)
-            if facts_context:
-                ollama_messages.insert(0, facts_context)
-            if reminders_context:
-                ollama_messages.insert(0, reminders_context)
-            if pending_actions_context:
-                ollama_messages.insert(0, pending_actions_context)
-            if rag_context:
-                ollama_messages.append(rag_context)
-            ollama_messages.append({"role": "user", "content": body.message})
-
             session.add(
-                Message(conversation_id=conversation.id, role="user", content=body.message)
+                Message(conversation_id=conversation_id, role="user", content=body.message)
             )
-            conversation_id = conversation.id
 
         tool_ctx = ToolContext(
             db=db,
@@ -281,12 +399,18 @@ def chats_router(
             user_id=user_id,
             conversation_id=conversation_id,
         )
+        # Unifie le ledger : les flags RAG (posés plus haut) et les appels
+        # LLM (remplis dans run_*) vivent sur le MÊME objet, loggé + renvoyé
+        # au client en fin de requête.
+        tool_ctx.usage = usage
         try:
             reply_text = await run_chat_with_tools(ollama, tool_ctx, ollama_messages)
         except ProviderUnavailableError as exc:
             # Message utilisateur déjà commité — l'échec du provider LLM ne le fait pas perdre.
             logger.warning("provider LLM indisponible (%s) : %s", ollama.default_name, exc)
             raise HTTPException(503, str(exc)) from exc
+
+        logger.info("requête chat traitée", conversation_id=conversation_id, **usage.summary())
 
         async with db.session() as session:
             assistant_msg = Message(
@@ -298,9 +422,10 @@ def chats_router(
                 session, assistant_msg.id, tool_ctx.generated_files
             )
 
-        if body.conversation_id is None:
+        if body.conversation_id is None and ENABLE_TITLE_GEN:
             asyncio.create_task(_generate_title(db, ollama, conversation_id, body.message))
-        asyncio.create_task(maybe_summarize(db, ollama, conversation_id))
+        if ENABLE_SUMMARY:
+            asyncio.create_task(maybe_summarize(db, ollama, conversation_id))
 
         return ChatResponse(
             conversation_id=conversation_id,
@@ -308,9 +433,14 @@ def chats_router(
             sources=_build_sources(rag_results),
             memory_notes=tool_ctx.saved_facts,
             attachments=_build_attachments_out(attachments),
+            usage=UsageOut(**usage.summary()),
         )
 
-    @router.post("/stream", summary="Envoyer un message, réponse en streaming (SSE)")
+    @router.post(
+        "/stream",
+        summary="Envoyer un message, réponse en streaming (SSE)",
+        dependencies=[Depends(limit_requests(STREAM_CALLS_PER_MINUTE, 60.0, "chat_stream"))],
+    )
     async def chat_stream_endpoint(
         body: ChatRequest,
         current_user: AuthPayload = Depends(get_current_user),
@@ -318,36 +448,27 @@ def chats_router(
         user_id = current_user["sub"]
         tenant_id = _tenant_of(current_user)
         is_new_conversation = body.conversation_id is None
+        usage = RequestUsage()
 
-        rag_results = await _rag_search(rag, tenant_id, body.message)
-        rag_context = _format_rag_context(rag_results)
+        # Vague parallèle (conversation + RAG gatée + mémoire) + persistance
+        # du message en session courte (voir commentaire de l'endpoint
+        # POST / — même motif, même garantie SQLite).
+        conversation_id, ollama_messages, rag_results = await _prepare_llm_context(
+            db,
+            rag,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            conversation_id=body.conversation_id,
+            title_hint=body.message,
+            query=body.message,
+            usage=usage,
+        )
+        ollama_messages.append({"role": "user", "content": body.message})
 
         async with db.session() as session:
-            conversation = await _resolve_conversation(
-                session, body.conversation_id, tenant_id, user_id, body.message
-            )
-            facts_context = format_facts_context(await load_facts(session, tenant_id, user_id))
-            reminders_context = format_reminders_context(
-                await load_suspended_reminders(session, tenant_id, user_id)
-            )
-            pending_actions_context = format_pending_actions_context(
-                await load_pending_actions(session, tenant_id, user_id)
-            )
-            ollama_messages = await build_history(session, conversation.id)
-            if facts_context:
-                ollama_messages.insert(0, facts_context)
-            if reminders_context:
-                ollama_messages.insert(0, reminders_context)
-            if pending_actions_context:
-                ollama_messages.insert(0, pending_actions_context)
-            if rag_context:
-                ollama_messages.append(rag_context)
-            ollama_messages.append({"role": "user", "content": body.message})
-
             session.add(
-                Message(conversation_id=conversation.id, role="user", content=body.message)
+                Message(conversation_id=conversation_id, role="user", content=body.message)
             )
-            conversation_id = conversation.id
 
         tool_ctx = ToolContext(
             db=db,
@@ -361,6 +482,10 @@ def chats_router(
             user_id=user_id,
             conversation_id=conversation_id,
         )
+        # Même unification du ledger que l'endpoint non-streaming (voir
+        # commentaire sur l'autre endpoint) — l'usage est loggé + renvoyé
+        # dans l'event done une fois le flux terminé.
+        tool_ctx.usage = usage
 
         async def event_stream():
             yield f"event: start\ndata: {json.dumps({'conversation_id': conversation_id})}\n\n"
@@ -406,15 +531,18 @@ def chats_router(
                     session, assistant_msg.id, tool_ctx.generated_files
                 )
 
-            if is_new_conversation:
+            if is_new_conversation and ENABLE_TITLE_GEN:
                 asyncio.create_task(_generate_title(db, ollama, conversation_id, body.message))
-            asyncio.create_task(maybe_summarize(db, ollama, conversation_id))
+            if ENABLE_SUMMARY:
+                asyncio.create_task(maybe_summarize(db, ollama, conversation_id))
+
+            logger.info("requête chat stream traitée", conversation_id=conversation_id, **usage.summary())
 
             sources = [s.model_dump() for s in _build_sources(rag_results)]
             attachments_out = [a.model_dump(mode="json") for a in _build_attachments_out(attachments)]
             yield (
                 "event: done\n"
-                f"data: {json.dumps({'sources': sources, 'memory_notes': tool_ctx.saved_facts, 'attachments': attachments_out})}\n\n"
+                f"data: {json.dumps({'sources': sources, 'memory_notes': tool_ctx.saved_facts, 'attachments': attachments_out, 'usage': usage.summary()})}\n\n"
             )
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -423,6 +551,9 @@ def chats_router(
         "/upload",
         summary="Envoyer un message avec fichiers (image/document, plusieurs possibles) et/ou audio",
         response_model=ChatResponse,
+        # Route la plus coûteuse (Whisper CPU + extraction + RAG) — plafond
+        # strict anti-abus/DoS compute, voir rate_limit.py.
+        dependencies=[Depends(limit_requests(UPLOAD_CALLS_PER_10MIN, 600.0, "chat_upload"))],
     )
     async def upload(
         conversation_id: str | None = Form(None),
@@ -436,17 +567,47 @@ def chats_router(
         tenant_id = _tenant_of(current_user)
         namespace = f"chat/{tenant_id}"
 
+        # Chaque fichier est lu entièrement en RAM (base64 + extraction) —
+        # borner le nombre par requête évite les pics mémoire/DoS disque.
+        if len(files) > MAX_FILES_PER_REQUEST:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Trop de fichiers en une seule requête (maximum {MAX_FILES_PER_REQUEST}) — "
+                    "envoie-les en plusieurs fois."
+                ),
+            )
+
         text_parts: list[str] = [message] if message else []
         images_b64: list[str] = []
         pending_attachments: list[Attachment] = []
 
         if audio is not None:
             audio_bytes = await audio.read()
+            # Whisper small tourne sur CPU dans le process API : un audio de
+            # 25 Mo = plusieurs minutes de calcul bloquant le worker HTTP.
+            # Plafond distinct (plus bas) du stockage, refusé tôt et clairement.
+            if len(audio_bytes) > MAX_AUDIO_BYTES:
+                raise HTTPException(
+                    400,
+                    f"Fichier audio trop volumineux ({len(audio_bytes) // 1_048_576} Mo, maximum "
+                    f"{MAX_AUDIO_BYTES // 1_048_576} Mo) — envoie un extrait plus court.",
+                )
             suffix = Path(audio.filename or "audio.webm").suffix or ".webm"
             try:
-                transcript = await transcriber.transcribe(audio_bytes, suffix=suffix)
+                # Timeout global : sans ça une transcription lente occupe un
+                # worker HTTP indéfiniment (le thread continue en tâche de
+                # fond, mais la requête ne pend plus).
+                transcript = await asyncio.wait_for(
+                    transcriber.transcribe(audio_bytes, suffix=suffix),
+                    timeout=TRANSCRIBE_TIMEOUT_S,
+                )
             except TranscriptionError as exc:
                 raise HTTPException(400, str(exc)) from exc
+            except asyncio.TimeoutError as exc:
+                raise HTTPException(
+                    503, "Transcription trop longue, réessaie avec un extrait plus court."
+                ) from exc
             if transcript:
                 text_parts.append(transcript)
 
@@ -521,51 +682,39 @@ def chats_router(
         user_text = "\n\n".join(p for p in text_parts if p).strip()
         if not user_text and not images_b64:
             raise HTTPException(400, "Message, fichier ou audio requis")
-        if len(user_text) > _MAX_EXTRACTED_CHARS:
+        if len(user_text) > MAX_EXTRACTED_CHARS:
             raise HTTPException(
                 400,
                 "Le contenu extrait de la pièce jointe est trop volumineux "
-                f"({len(user_text)} caractères, maximum {_MAX_EXTRACTED_CHARS}) — "
+                f"({len(user_text)} caractères, maximum {MAX_EXTRACTED_CHARS}) — "
                 "essaie un fichier plus court ou plus ciblé.",
             )
 
-        rag_results = await _rag_search(rag, tenant_id, user_text)
-        rag_context = _format_rag_context(rag_results)
+        usage = RequestUsage()
 
-        # Session courte : voir commentaire dans chat() — on referme avant
-        # l'appel Ollama pour ne pas garder le verrou d'écriture pendant
-        # l'inférence.
+        # Vague parallèle (conversation + RAG gatée + mémoire) — voir
+        # _prepare_llm_context. La persistance (message + pièces jointes)
+        # garde sa session dédiée ci-dessous (flush nécessaire pour l'id).
+        conversation_id_out, ollama_messages, rag_results = await _prepare_llm_context(
+            db,
+            rag,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            conversation_id=conversation_id,
+            title_hint=user_text,
+            query=user_text,
+            usage=usage,
+        )
+        ollama_messages.append({"role": "user", "content": user_text})
+
         async with db.session() as session:
-            conversation = await _resolve_conversation(
-                session, conversation_id, tenant_id, user_id, user_text
-            )
-            facts_context = format_facts_context(await load_facts(session, tenant_id, user_id))
-            reminders_context = format_reminders_context(
-                await load_suspended_reminders(session, tenant_id, user_id)
-            )
-            pending_actions_context = format_pending_actions_context(
-                await load_pending_actions(session, tenant_id, user_id)
-            )
-            ollama_messages = await build_history(session, conversation.id)
-            if facts_context:
-                ollama_messages.insert(0, facts_context)
-            if reminders_context:
-                ollama_messages.insert(0, reminders_context)
-            if pending_actions_context:
-                ollama_messages.insert(0, pending_actions_context)
-            if rag_context:
-                ollama_messages.append(rag_context)
-            ollama_messages.append({"role": "user", "content": user_text})
-
-            user_msg = Message(conversation_id=conversation.id, role="user", content=user_text)
+            user_msg = Message(conversation_id=conversation_id_out, role="user", content=user_text)
             session.add(user_msg)
             await session.flush()
 
             for attachment in pending_attachments:
                 attachment.message_id = user_msg.id
                 session.add(attachment)
-
-            conversation_id_out = conversation.id
 
         tool_ctx = ToolContext(
             db=db,
@@ -579,12 +728,16 @@ def chats_router(
             user_id=user_id,
             conversation_id=conversation_id_out,
         )
+        # Unification du ledger (voir endpoint POST /).
+        tool_ctx.usage = usage
         try:
             reply_text = await run_chat_with_tools(
                 ollama, tool_ctx, ollama_messages, images_b64=images_b64 or None
             )
         except ProviderUnavailableError as exc:
             raise HTTPException(503, str(exc)) from exc
+
+        logger.info("requête chat upload traitée", conversation_id=conversation_id_out, **usage.summary())
 
         async with db.session() as session:
             assistant_msg = Message(
@@ -596,9 +749,10 @@ def chats_router(
                 session, assistant_msg.id, tool_ctx.generated_files
             )
 
-        if conversation_id is None:
+        if conversation_id is None and ENABLE_TITLE_GEN:
             asyncio.create_task(_generate_title(db, ollama, conversation_id_out, user_text))
-        asyncio.create_task(maybe_summarize(db, ollama, conversation_id_out))
+        if ENABLE_SUMMARY:
+            asyncio.create_task(maybe_summarize(db, ollama, conversation_id_out))
 
         return ChatResponse(
             conversation_id=conversation_id_out,
@@ -606,6 +760,7 @@ def chats_router(
             sources=_build_sources(rag_results),
             memory_notes=tool_ctx.saved_facts,
             attachments=_build_attachments_out(attachments),
+            usage=UsageOut(**usage.summary()),
         )
 
     @router.get("/", summary="Lister mes conversations", response_model=list[ConversationOut])

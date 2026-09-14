@@ -290,9 +290,141 @@
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .interjection-in {
-      animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interjection-in {
+    animation: none;
+  }
+}
+
+/* Markdown/Prose — rendu des réponses de l'IA ------------------------------ */
+@layer components {
+  .prose {
+    @apply text-ink leading-relaxed;
+  }
+
+  .prose p {
+    @apply mb-md;
+  }
+
+  .prose p:last-child {
+    @apply mb-0;
+  }
+
+  .prose strong {
+    @apply font-semibold text-ink;
+  }
+
+  .prose em {
+    @apply italic;
+  }
+
+  .prose code {
+    @apply text-sm font-mono bg-surface-sunken px-xs py-[1px] rounded text-primary-strong;
+  }
+
+  .prose pre {
+    @apply mb-md overflow-x-auto rounded-lg bg-surface-inverse p-md text-xs;
+  }
+
+  .prose pre code {
+    @apply bg-transparent p-0 text-ink-inverse font-mono text-sm;
+  }
+
+  .prose ul {
+    @apply mb-md ml-lg list-disc;
+  }
+
+  .prose ol {
+    @apply mb-md ml-lg list-decimal;
+  }
+
+  .prose li {
+    @apply mb-xs;
+  }
+
+  .prose blockquote {
+    @apply mb-md border-l-4 border-primary pl-md italic text-ink-muted;
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    @apply font-semibold text-ink mt-xl mb-sm;
+  }
+
+  .prose h1 { @apply text-headline-lg; }
+  .prose h2 { @apply text-headline-md; }
+  .prose h3 { @apply text-body-lg; }
+  .prose h4 { @apply text-body-md; }
+
+  .prose table {
+    @apply mb-md w-full border-collapse text-sm;
+  }
+
+  .prose th,
+  .prose td {
+    @apply border border-line px-sm py-xs text-left;
+  }
+
+  .prose th {
+    @apply bg-surface-raised font-semibold text-ink;
+  }
+
+  .prose td {
+    @apply bg-surface text-ink;
+  }
+
+  .prose tr:nth-child(even) td {
+    @apply bg-surface-raised;
+  }
+
+  .prose hr {
+    @apply my-xl border-line;
+  }
+
+  .prose a {
+    @apply text-primary underline underline-offset-2 hover:text-primary-strong;
+  }
+
+  .prose kbd {
+    @apply inline-flex items-center gap-xs rounded bg-surface-sunken px-xs py-[1px] text-xs font-mono text-ink;
+  }
+
+  .prose details {
+    @apply mb-md rounded-lg border border-line bg-surface;
+  }
+
+  .prose summary {
+    @apply cursor-pointer px-md py-sm font-medium text-ink;
+  }
+
+  .prose details[open] summary {
+    @apply mb-sm;
+  }
+
+  .prose details > *:last-child {
+    @apply mb-0;
+  }
+
+  /* Curseur de génération : un point qui bat, accroché à la fin du texte qui
+     s'écrit — sans consommer de hauteur de ligne. */
+  .stream-cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1em;
+    margin-left: 0.15em;
+    vertical-align: -0.12em;
+    border-radius: 1px;
+    background: var(--color-primary);
+    animation: stream-blink 0.9s step-end infinite;
+  }
+
+  @keyframes stream-blink {
+    50% {
+      opacity: 0;
     }
   }
 }

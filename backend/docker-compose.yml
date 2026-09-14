@@ -29,6 +29,9 @@ services:
         condition: service_healthy
     environment:
       REDIS_URL: redis://redis:6379
+      # Pont statuts RAG (API → websocket) : même Redis que le worker,
+      # base 2 — localhost hardcodé historiquement = pont mort en compose.
+      DONNA_RAG_STATUS_REDIS_URL: redis://redis:6379/2
     env_file: .env
     ports:
       - "8000:8000"
@@ -44,6 +47,22 @@ services:
         condition: service_healthy
     environment:
       REDIS_URL: redis://redis:6379
+      # Config worker explicite (jamais de localhost hardcodé — voir
+      # extensions/worker_env.py). En Dokploy, mapper depuis les vars
+      # existantes : ${PUBSUB_REDIS_URL}0, ${PUBSUB_REDIS_URL}2, etc.
+      DONNA_DB_URL: sqlite:///data/db.sqlite3
+      DONNA_DB_URL_ASYNC: sqlite+aiosqlite:///data/db.sqlite3
+      DONNA_REMINDER_REDIS_URL: redis://redis:6379/0
+      DONNA_RAG_STATUS_REDIS_URL: redis://redis:6379/2
+      RAG_EMBED_PROVIDER: ollama
+      RAG_EMBED_MODEL: nomic-embed-text
+      RAG_EMBED_DIM: 768
+      # Ollama tourne HORS compose (sur l'hôte, `ollama serve`) : depuis un
+      # conteneur, "localhost" désignerait le conteneur lui-même, jamais
+      # l'hôte — d'où host.docker.internal (Docker Desktop : résolu
+      # nativement ; Linux : ajouter `extra_hosts: ["host.docker.internal:host-gateway"]`
+      # aux services ou remplacer par l'IP LAN de l'hôte).
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
     env_file: .env
     # Même image que api, commande différente — CMD écrasé, ENTRYPOINT
     # (docker-entrypoint.sh : reconstruction .env, clés JWT, attente Redis)
@@ -57,6 +76,35 @@ services:
         "-Q", "rag",
         "--concurrency", "4",
         "-n", "donna-rag-worker@%h",
+      ]
+    volumes:
+      - donna_data:/app/data
+      - donna_log:/app/log
+
+  # Worker dédié aux rappels temps-sensible (chat.fire_reminder, queue
+  # `reminders`) : isolé du worker d'ingestion pour qu'un gros document
+  # n'empêche jamais un rappel de partir à l'heure. Léger (pas d'embeddings
+  # ici) — concurrency 2 suffit.
+  worker-reminders:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379
+      DONNA_DB_URL: sqlite:///data/db.sqlite3
+      DONNA_REMINDER_REDIS_URL: redis://redis:6379/0
+    env_file: .env
+    command:
+      [
+        "celery",
+        "-A", "xcore.services.xworker.xworker:_celery_worker",
+        "worker",
+        "--loglevel", "INFO",
+        "-Q", "reminders",
+        "--concurrency", "2",
+        "-n", "donna-reminders-worker@%h",
       ]
     volumes:
       - donna_data:/app/data

@@ -27,6 +27,18 @@ reconstruct() {
 reconstruct app/chat/.env.template app/chat/.env
 reconstruct app/xauth/.env.template app/xauth/.env
 
+# Garde-fou prod : xcore refuse de démarrer avec les clés par défaut
+# ("change-me-in-production") mais PAS avec une chaîne vide — or
+# integration.docker.yaml résout ${SECRET_KEY}/${SERVER_KEY} en "" quand la
+# variable est absente (interpolation xcore), ce qui ferait tourner JWT/HMAC
+# sur un secret vide sans aucune erreur. Fail-fast explicite à la place.
+if [ "${XCORE_CONFIG_PATH:-integration.yaml}" = "integration.docker.yaml" ]; then
+  if [ -z "$SECRET_KEY" ] || [ -z "$SERVER_KEY" ]; then
+    echo "[docker-entrypoint] ERREUR : SECRET_KEY et SERVER_KEY doivent être définies (environnement Dokploy) avec integration.docker.yaml — démarrage refusé." >&2
+    exit 1
+  fi
+fi
+
 # Clés JWT (RS256) — jamais commitées (*.pem gitignored), générées une fois
 # et écrites dans data/ (volume persistant) pour survivre aux
 # redéploiements : régénérer à chaque déploiement invaliderait tous les

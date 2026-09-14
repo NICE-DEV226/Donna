@@ -1,5 +1,5 @@
 <div *transloco="let t" class="flex h-full min-h-0 flex-col">
-  <div class="min-h-0 grow overflow-y-auto px-lg">
+  <div #scrollHost class="min-h-0 grow overflow-y-auto px-lg">
     @if (store.isEmpty()) {
       <!-- État vide : l'invitation, pas un tableau de bord. -->
       <div class="flex h-full flex-col items-center justify-center text-center">
@@ -121,7 +121,10 @@
                       }
                     </div>
                   } @else {
-                    <p class="text-body-lg text-ink">{{ message.text ?? t(message.textKey ?? '') }}</p>
+                    <div class="prose prose-sm max-w-none text-body-lg text-ink" [innerHTML]="(message.text ?? t(message.textKey ?? '')) | markdown"></div>
+                    @if (store.streaming() && $last) {
+                      <span class="stream-cursor" aria-hidden="true"></span>
+                    }
                   }
 
                   @if (message.sources?.length) {
@@ -239,9 +242,10 @@
 
         @if (store.isThinking()) {
           <!--
-            Le travail en cours prend sa place dans le fil, pas seulement dans le
-            rail : on voit DONNA réfléchir là où la réponse va apparaître.
-            Muet pour les lecteurs d'écran — LiveAnnouncer annonce déjà les étapes.
+            Panneau de réflexion expansible (style Claude/ChatGPT) :
+            - Par défaut ouvert pendant la réflexion, repliable par l'utilisateur
+            - Affiche la trace d'outils en direct (recherche, outils, fallback)
+            - Indicateur visuel "Donna réfléchit..." dans le résumé
           -->
           <li class="message-in flex gap-md" aria-hidden="true">
             <span
@@ -251,25 +255,44 @@
             </span>
 
             <div class="min-w-0 grow">
-              @if (store.liveTrace().length) {
-                <!-- Les sources s'empilent en direct : on voit DONNA chercher. -->
-                <research-trace [entries]="store.liveTrace()" live />
-              } @else {
-                <div class="flex h-6 items-center gap-xs">
-                  @for (dot of dots; track dot) {
-                    <span
-                      class="thinking-dot size-1.5 rounded-full bg-primary"
-                      [style.--i]="dot"
-                    ></span>
-                  }
-                </div>
-              }
+              <details
+                class="group rounded-lg border border-line bg-surface"
+                [open]="store.thinkingPanelOpen()"
+                (toggle)="store.setThinkingPanelOpen($any($event.target).open)"
+              >
+                <summary
+                  class="flex cursor-pointer items-center gap-sm px-md py-sm text-body-sm text-ink-muted transition-colors hover:text-ink"
+                >
+                  <span class="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true"></span>
+                  <span>{{ t('workspace.thinking.searching') }}</span>
+                  <ui-icon
+                    name="chevron-down"
+                    [size]="16"
+                    class="ml-auto shrink-0 transition-transform duration-200 group-open:rotate-180"
+                  />
+                </summary>
 
-              <div class="mt-md flex max-w-measure flex-col gap-sm">
-                <span class="shimmer h-3 w-full rounded-sm"></span>
-                <span class="shimmer h-3 w-4/5 rounded-sm"></span>
-                <span class="shimmer h-3 w-3/5 rounded-sm"></span>
-              </div>
+                <div class="border-t border-line p-md">
+                  @if (store.liveTrace().length) {
+                    <research-trace [entries]="store.liveTrace()" [live]="true" />
+                  } @else {
+                    <div class="flex h-6 items-center gap-xs">
+                      @for (dot of dots; track dot) {
+                        <span
+                          class="thinking-dot size-1.5 rounded-full bg-primary"
+                          [style.--i]="dot"
+                        ></span>
+                      }
+                    </div>
+                  }
+
+                  <div class="mt-md flex max-w-measure flex-col gap-sm">
+                    <span class="shimmer h-3 w-full rounded-sm"></span>
+                    <span class="shimmer h-3 w-4/5 rounded-sm"></span>
+                    <span class="shimmer h-3 w-3/5 rounded-sm"></span>
+                  </div>
+                </div>
+              </details>
             </div>
           </li>
         }

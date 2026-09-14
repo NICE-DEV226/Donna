@@ -391,6 +391,9 @@
         "preview": "Preview in DONNA"
       }
     },
+    "thinking": {
+      "searching": "DONNA is thinking…"
+    },
     "attachmentPreview": {
       "close": "Close preview",
       "openExternal": "Open the original",

@@ -4,17 +4,23 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from xcore.sdk import get_logger
 
+from extensions.donna_settings import (
+    MAX_HISTORY_CHARS,
+    SUMMARY_KEEP_RECENT,
+    SUMMARY_MAX_CHARS,
+    SUMMARY_TRIGGER,
+)
+
 from .models import ConversationSummary, Message, PendingAction, Reminder, UserFact
 from .providers.router import ProviderRouter
 
 logger = get_logger("chat.memory")
 
-# Nombre de messages non encore résumés au-delà duquel on déclenche une
-# nouvelle passe de résumé, et nombre de messages récents qu'on garde
-# toujours en clair (jamais résumés) pour ne pas perdre le fil immédiat.
-_SUMMARY_TRIGGER = 20
-_SUMMARY_KEEP_RECENT = 10
-_SUMMARY_MAX_CHARS = 3000
+# Seuils de résumé glissant — réglages ops centralisés, voir
+# extensions/donna_settings.py (DONNA_SUMMARY_*).
+_SUMMARY_TRIGGER = SUMMARY_TRIGGER
+_SUMMARY_KEEP_RECENT = SUMMARY_KEEP_RECENT
+_SUMMARY_MAX_CHARS = SUMMARY_MAX_CHARS
 
 _SUMMARY_PROMPT = (
     "Tu résumes une conversation entre un utilisateur et Donna, son assistante. "
@@ -137,6 +143,17 @@ async def build_history(session: AsyncSession, conversation_id: str) -> list[dic
                 "content": f"Résumé du début de cette conversation :\n{summary_row.summary}",
             },
         )
+
+    # Plafond DUR (DONNA_MAX_HISTORY_CHARS) : borne la croissance du contexte
+    # quelle que soit la longueur de la conversation — on sacrifie les plus
+    # anciens messages en clair en premier, le résumé (tête) ne saute jamais.
+    if history:
+        head, tail = (history[:1], history[1:]) if summary_row and summary_row.summary else ([], history)
+        total = sum(len(m["content"]) for m in tail)
+        while tail and len(tail) > 1 and total > MAX_HISTORY_CHARS:
+            dropped = tail.pop(0)
+            total -= len(dropped["content"])
+        history = head + tail
     return history
 
 

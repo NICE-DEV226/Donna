@@ -130,6 +130,13 @@ export class WorkspaceStore {
   private stagedFiles: File[] = [];
   /** Documents dont on attend encore la fin d'indexation (voir rag_ingestion_status). */
   private readonly pendingIngestDocIds = new Set<string>();
+  /**
+   * Rappels déjà notifiés (par reminder_id) : la livraison backend est
+   * au-moins-une-fois (reprise après crash worker, replay d'inbox à la
+   * reconnexion SSE) — sans ce garde, un doublon afficherait 2 cloches +
+   * 2 injections dans le fil pour le même rappel.
+   */
+  private readonly seenReminderIds = new Set<string>();
 
   private readonly toasts = inject(Toasts);
   private readonly transloco = inject(TranslocoService);
@@ -154,6 +161,9 @@ export class WorkspaceStore {
   /** Le fil affiché découle de la conversation ouverte : aucune copie à resynchroniser. */
   readonly messages = computed<readonly Message[]>(() => this.activeConversation()?.messages ?? []);
   readonly isThinking = signal(false);
+  readonly thinkingPanelOpen = signal(true);
+  /** Un flux de deltas est en cours d'écriture dans le dernier message DONNA (curseur + auto-scroll). */
+  readonly streaming = signal(false);
   /** Outils invoqués pendant la question en cours, dans l'ordre d'arrivée (voir événements tool_call du flux). */
   readonly liveTrace = signal<readonly TraceEntry[]>([]);
   readonly approved = signal<readonly number[]>([]);
@@ -235,6 +245,14 @@ export class WorkspaceStore {
 
     this.pulse.stream.subscribe((event) => {
       if (event.channel === 'reminders') {
+        // Déduplication : même reminder_id déjà vu (reprise worker ou
+        // replay d'inbox) → ignoré. Borne anti-fuite mémoire.
+        if (this.seenReminderIds.has(event.data.reminder_id)) return;
+        this.seenReminderIds.add(event.data.reminder_id);
+        if (this.seenReminderIds.size > 500) {
+          const oldest = this.seenReminderIds.values().next();
+          if (!oldest.done) this.seenReminderIds.delete(oldest.value);
+        }
         // Toujours notifié (cloche) — en plus, injecté en direct dans le fil
         // si c'est celui actuellement ouvert : le backend l'y a déjà persisté
         // (voir chat/src/tasks.py::_insert_reminder_message), mais sans
@@ -411,6 +429,8 @@ export class WorkspaceStore {
       attachments: localAttachments.length ? localAttachments : undefined,
     });
     this.isThinking.set(true);
+    this.thinkingPanelOpen.set(true);
+    this.streaming.set(false);
     this.liveTrace.set([]);
 
     if (files.length > 0) {
@@ -509,6 +529,7 @@ export class WorkspaceStore {
             if (!started) {
               started = true;
               this.isThinking.set(false);
+              this.streaming.set(true);
               this.pushMessage({
                 author: 'donna',
                 text: '',
@@ -522,9 +543,20 @@ export class WorkspaceStore {
             if (event.name === 'ask_user') {
               pendingQuestion = true;
               const raw = event.arguments['options'];
-              pendingOptions = Array.isArray(raw)
+              const options = Array.isArray(raw)
                 ? raw.filter((o): o is string => typeof o === 'string')
                 : [];
+              pendingOptions = options;
+              // ask_user arrive APRÈS les deltas du même tour (voir
+              // tools.py::run_chat_stream_with_tools) : le message a déjà été
+              // créé au premier delta, on le marque donc rétroactivement en
+              // question — sinon kind/options restent absents et la question
+              // s'affiche comme un texte d'assistant ordinaire.
+              this.updateLastMessage((m) =>
+                m.author === 'donna' && m.kind !== 'question'
+                  ? { kind: 'question', options: options.length ? options : undefined }
+                  : {},
+              );
             } else {
               this.liveTrace.update((list) => [...list, { name: event.name, result: event.result }]);
             }
@@ -564,6 +596,7 @@ export class WorkspaceStore {
       this.toasts.push({ titleKey: 'workspace.errors.chatFailed' }, 'Chat failed');
     } finally {
       this.isThinking.set(false);
+      this.streaming.set(false);
       this.liveTrace.set([]);
     }
   }
@@ -717,6 +750,10 @@ export class WorkspaceStore {
     this.editingAction.set(null);
   }
 
+  setThinkingPanelOpen(open: boolean): void {
+    this.thinkingPanelOpen.set(open);
+  }
+
   /** Valide l'action après reformulation : c'est le texte corrigé qui fait foi. */
   saveAction(id: number, text: string): void {
     const amended = text.trim();
@@ -759,6 +796,8 @@ export class WorkspaceStore {
   /** Nouveau fil : la mémoire indexée et les fils passés sont conservés. */
   resetConversation(): void {
     this.isThinking.set(false);
+    this.thinkingPanelOpen.set(true);
+    this.streaming.set(false);
     this.liveTrace.set([]);
     this.activeConversationId.set(null);
   }

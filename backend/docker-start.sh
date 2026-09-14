@@ -26,8 +26,11 @@ set -e
 trap 'kill -TERM $(jobs -p) 2>/dev/null; wait' TERM INT
 
 
-uv run xcli worker process start -d 
-uv run xcli manager start --port 8000 -l debug -w 4
+uv run xcli worker process start -d
+# Niveau de log pilotable (LOG_LEVEL=debug ponctuellement pour investiguer),
+# INFO par défaut : -l debug en continu en prod = volume de logs ×10-100,
+# coût CPU/I-O et risque de fuite de données sensibles dans les logs.
+uv run xcli manager start --port 8000 -l "${LOG_LEVEL:-info}" -w 4
 
 # docker-watch.sh (auto-update des ~14 plugins/extensions marketplace, voir
 # ce script) est un 3e job de fond au même titre que l'API et le worker —

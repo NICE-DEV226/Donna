@@ -12,9 +12,13 @@ app:
   fastapi:
     title: "."
     version: "0.1.0"
-    docs_url: "/docs"
-    redoc_url: "/redoc"
-    openapi_url: "/openapi.json"
+    # Surface d'attaque : docs interactives + schéma OpenAPI DÉSACTIVÉS en
+    # prod (null = None = route non enregistrée, voir main.py). Réactiver
+    # temporairement pour débugger via XCORE__APP__FASTAPI__DOCS_URL=/docs
+    # (override env natif xcore), jamais en continu.
+    docs_url:
+    redoc_url:
+    openapi_url:
     redirect_slashes: true
 
   server:
@@ -24,7 +28,12 @@ app:
     reload: false
     log_level: "INFO"
     proxy_headers: true
-    forwarded_allow_ips: "*"
+    # Anti IP-spoofing : "*" faisait confiance à n'importe quel client pour
+    # X-Forwarded-For (rate-limit/audit faussables). Poser ici les IP/PLAGES
+    # de sortie du reverse-proxy Dokploy (CSV, ex: "10.0.0.0/8,172.16.0.0/12").
+    # Absente → chaîne vide = aucun proxy de confiance = l'IP vue est
+    # l'IP de connexion directe (fail-safe, jamais fail-open).
+    forwarded_allow_ips: "${FORWARDED_ALLOW_IPS}"
 
 plugins:
   directory: ./app
@@ -65,6 +74,11 @@ services:
     task_default_queue: rag
     queues:
       - rag
+      # Queue temps-sensible des rappels (chat.fire_reminder) — voir
+      # extensions/worker_env.py. Le worker `xcli worker process start`
+      # consomme les queues déclarées ici ; en compose, voir le service
+      # worker-reminders dédié ci-dessous.
+      - reminders
     modules:
       - app.rag.src.tasks
       - app.chat.src.tasks
@@ -74,6 +88,13 @@ services:
       module: extensions.rag.service:RagService
       config:
         db_url: sqlite+aiosqlite:///data/db.sqlite3
+        # ⚠️ MIROIR OBLIGATOIRE côté worker (extensions/worker_env.py) : le
+        # worker d'ingestion ne lit PAS ce YAML — poser dans Dokploy :
+        #   RAG_EMBED_PROVIDER=jina
+        #   RAG_EMBED_MODEL=jina-embeddings-v5-text-small
+        #   RAG_EMBED_DIM=1024
+        #   RAG_EMBED_API_KEY=<même clé que RAG_EMBED_API_KEY_JINA>
+        # Toute divergence provider/dim casse la recherche (vec0).
         # Pas d'Ollama en conteneur — embeddings cloud, repli automatique
         # et silencieux sur Ollama SEULEMENT si embed_api_key est absente
         # (voir extensions/rag/service.py.__init__) : sans Ollama joignable

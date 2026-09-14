@@ -33,8 +33,8 @@ allowed_imports:
 
 ollama:
   base_url: "http://localhost:11434"
-  model: "qwen2.5:3b"
-  vision_model: "qwen2.5vl:3b"
+  model: "qwen3-vl:4b"
+  vision_model: "qwen3-vl:4b"
   # 600s (10 min) laissait un round d'appel d'outils bloqué en silence
   # jusque là en cas de contention CPU — repli local (voir ProviderRouter)
   # + gros prompt (system prompt + schéma d'outils) sur un modèle 3B en CPU
@@ -100,12 +100,15 @@ whisper:
 # Attention : "grok" (xAI) et "groq" (api.groq.com, inference rapide sur
 # modèles open-source) sont deux providers distincts, ne pas confondre.
 llm:
-  provider: "groq"   # ollama | anthropic | openai | grok | groq | gemini
+  provider: "openrouter"   # ollama | anthropic | openai | grok | groq | gemini | openrouter
   anthropic:
     model: "claude-sonnet-5"
     max_tokens: 4096
   openai:
     model: "gpt-4o-mini"
+  openrouter:
+    model: "openrouter/auto"
+    base_url: "https://openrouter.ai/api/v1"
   grok:
     model: "grok-2-latest"
     base_url: "https://api.x.ai/v1"
@@ -117,15 +120,11 @@ llm:
   gemini:
     model: "gemini-flash-latest"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
-  # Provider vision dédié, indépendant de `provider` ci-dessus (un modèle
-  # texte-seul ne "voit" pas d'image) — laisser `provider:` vide/absent pour
-  # rester sur Ollama local pour la vision (repli par défaut, voir
-  # ProviderRouter). qwen3.6/3.8-27b sur Groq supportent vision + tools
-  # ensemble, contrairement aux modèles vision d'Ollama.
-  vision:
-    provider: "groq"   # vide/absent = Ollama local (défaut)
-    model: "qwen/qwen3.6-27b"
-    base_url: "https://api.groq.com/openai/v1"
+  # OpenRouter — OpenAI-compatible, multi-modèles (Llama, Qwen, etc.)
+  # Base URL: https://openrouter.ai/api/v1
+  openrouter:
+    model: "openrouter/auto"   # ou un modèle spécifique ex: "meta-llama/llama-3.1-70b-instruct"
+    base_url: "https://openrouter.ai/api/v1"
 
 envconfiguration:
   inject: true
@@ -137,6 +136,7 @@ env:
   XAI_API_KEY: "${CHAT_XAI_API_KEY}"
   GROQ_API_KEY: "${CHAT_GROQ_API_KEY}"
   GEMINI_API_KEY: "${CHAT_GEMINI_API_KEY}"
+  OPENROUTER_API_KEY: "${CHAT_OPENROUTER_API_KEY}"
 
 resources:
   timeout_seconds: 120

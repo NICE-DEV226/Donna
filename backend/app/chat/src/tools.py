@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -11,19 +12,32 @@ from typing import Any, AsyncIterator
 from xcore.sdk import get_logger
 
 from extensions.doc_extract.extract import ExtractionError, extract_text
+from extensions.donna_settings import (
+    MAX_INPUT_TOKENS_PER_REQUEST,
+    MAX_TOOL_ROUNDS,
+    TOOL_RESULT_MAX_CHARS,
+)
+from extensions.worker_env import REMINDERS_QUEUE
 from .memory import load_facts
 from .models import PendingAction, Reminder, UserFact
+from .usage import RequestUsage, cap_text
 
 logger = get_logger("chat.tools")
 
-# Nombre max d'allers-retours modèle -> outil -> modèle avant de forcer une
-# réponse texte — garde-fou contre une boucle d'appels d'outils qui ne
-# converge jamais. Volontairement plus haut que ce qu'un simple appel
-# d'outil demanderait : générer un document (word/excel/pdf via MCP) est
-# intrinsèquement multi-étapes (create -> plusieurs add_* -> finalize).
-MAX_TOOL_ROUNDS = 12
+# Garde-fou anti header-injection SMTP (voir _propose_email + xmailler) :
+# destinataire et objet finissent en en-têtes MIME — un "\nBcc: ..." glissé
+# par le modèle (ou un prompt injecté) y ajouterait des en-têtes arbitraires.
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+_MAX_EMAIL_LEN = 254
+_MAX_SUBJECT_LEN = 200
 
-# Sous-dossiers de travail des serveurs MCP document (voir integration.yaml,
+
+def _valid_email(to: str) -> bool:
+    return bool(to) and len(to) <= _MAX_EMAIL_LEN and _EMAIL_RE.match(to) is not None
+
+
+def _valid_header(value: str, max_len: int) -> bool:
+    return bool(value) and len(value) <= max_len and "\n" not in value and "\r" not in value
 # extensions.mcp_bridge.servers.*.cwd) — c'est là que create_document/
 # create_workbook/etc. écrivent leurs fichiers, puisque chaque serveur y est
 # lancé avec ce cwd.
@@ -52,24 +66,17 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "remember_fact",
             "description": (
-                "Enregistre UN SEUL fait nouveau, durable et utile à propos de "
-                "l'utilisateur, pour s'en souvenir dans les prochaines conversations. "
-                "À utiliser seulement pour une information stable (préférence, "
-                "contexte personnel ou professionnel) — jamais pour du contexte "
-                "ponctuel propre à cette seule question. N'inclus dans le texte que "
-                "l'information nouvelle : ne répète pas et ne fusionne pas avec des "
-                "faits déjà connus (visibles plus haut dans la conversation) — appelle "
-                "l'outil une fois par fait distinct si plusieurs faits apparaissent."
+                "Enregistre UN fait durable sur l'utilisateur (préférence, "
+                "contexte stable) — jamais de contexte ponctuel. Un seul fait "
+                "par appel ; ne répète ni ne fusionne les faits déjà connus "
+                "(visibles en contexte)."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "fact": {
                         "type": "string",
-                        "description": (
-                            "Le nouveau fait à retenir, et rien d'autre — formulé court "
-                            "et de façon autonome, sans reprendre un fait déjà connu."
-                        ),
+                        "description": "Le fait nouveau, court et autonome.",
                     }
                 },
                 "required": ["fact"],
@@ -81,9 +88,8 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "update_fact",
             "description": (
-                "Corrige un fait déjà retenu, devenu inexact ou incomplet (ex: "
-                "l'utilisateur a changé de poste). Utilise l'identifiant exact montré "
-                "en contexte entre crochets."
+                "Corrige un fait existant devenu inexact, via son identifiant "
+                "exact entre crochets en contexte."
             ),
             "parameters": {
                 "type": "object",
@@ -100,9 +106,8 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "forget_fact",
             "description": (
-                "Efface définitivement un fait retenu, s'il n'est plus pertinent ou "
-                "que l'utilisateur demande à ce qu'il soit oublié. Utilise "
-                "l'identifiant exact montré en contexte entre crochets."
+                "Efface un fait devenu inutile, ou sur demande explicite "
+                "d'oubli. Identifiant exact entre crochets."
             ),
             "parameters": {
                 "type": "object",
@@ -118,27 +123,21 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "set_reminder",
             "description": (
-                "Programme un rappel pour l'utilisateur. Si une date/heure précise "
-                "est donnée ou déductible de la date actuelle (voir contexte), fournis "
-                "due_at au format ISO 8601 complet (ex: '2026-08-27T09:00:00') — le "
-                "rappel se déclenchera automatiquement à ce moment, même si "
-                "l'utilisateur n'est pas en conversation. Si aucune date/heure n'est "
-                "connue, omets due_at : le rappel reste en attente et tu pourras le "
-                "ressortir toi-même dans une prochaine conversation."
+                "Programme un rappel. Avec due_at ISO 8601 (déduit de la date "
+                "actuelle en contexte, ex: '2026-08-27T09:00:00') il se "
+                "déclenche seul à l'heure, même hors conversation ; sans "
+                "due_at il reste en attente et tu le ressortiras toi-même."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "content": {
                         "type": "string",
-                        "description": "Ce dont il faut se souvenir / rappeler à l'utilisateur.",
+                        "description": "Contenu du rappel.",
                     },
                     "due_at": {
                         "type": ["string", "null"],
-                        "description": (
-                            "Date et heure ISO 8601 du rappel, si connue ou déductible. "
-                            "Omis ou null si aucune date n'est donnée."
-                        ),
+                        "description": "Date/heure ISO 8601 si connue, sinon omis.",
                     },
                 },
                 "required": ["content"],
@@ -150,11 +149,7 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "cancel_reminder",
             "description": (
-                "Annule un rappel — à utiliser quand l'utilisateur indique que ce "
-                "n'est plus utile. Fonctionne sur les rappels en attente sans date "
-                "listés en contexte ; pour un rappel déjà programmé à une date "
-                "précise, l'identifiant n'est visible que si l'utilisateur te l'a "
-                "donné explicitement."
+                "Annule un rappel en attente listé en contexte (identifiant exact)."
             ),
             "parameters": {
                 "type": "object",
@@ -170,27 +165,21 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "ask_user",
             "description": (
-                "Signale au frontend que tu poses une question de clarification "
-                "importante à l'utilisateur (ex: préciser une date pour un rappel). "
-                "N'appelle ceci qu'en plus d'écrire la question normalement dans ta "
-                "réponse — ça ne la remplace pas, ça la met en évidence côté "
-                "interface."
+                "Signale au frontend que ta réponse pose une question de "
+                "clarification importante (EN PLUS de l'écrire normalement — "
+                "ne la remplace pas)."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "question": {
                         "type": "string",
-                        "description": "La question posée à l'utilisateur, telle quelle.",
+                        "description": "La question, telle quelle.",
                     },
                     "options": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": (
-                            "Si la question a des réponses prédéfinies (2 à 5 choix "
-                            "courts), liste-les ici — l'interface les affiche en "
-                            "boutons cliquables. Laisse vide pour une question ouverte."
-                        ),
+                        "description": "2 à 5 choix courts affichés en boutons, ou vide.",
                     },
                 },
                 "required": ["question"],
@@ -202,9 +191,8 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "search_emails",
             "description": (
-                "Cherche dans les emails Gmail de l'utilisateur (lecture seule). "
-                "Utilise la syntaxe de recherche Gmail pour query si besoin (ex: "
-                "'from:x@y.com is:unread'), ou un texte libre."
+                "Lecture seule Gmail. Syntaxe Gmail acceptée pour query "
+                "(ex: 'from:x@y.com is:unread'), vide = plus récents."
             ),
             "parameters": {
                 "type": "object",
@@ -220,7 +208,7 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "list_upcoming_events",
-            "description": "Liste les prochains événements de l'agenda Google de l'utilisateur (lecture seule).",
+            "description": "Lecture seule des prochains événements Google Agenda.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -235,15 +223,21 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "propose_email",
             "description": (
-                "Prépare un email à envoyer au nom de l'utilisateur — NE L'ENVOIE PAS. "
-                "Stocke une action en attente que l'utilisateur doit confirmer "
-                "explicitement (via confirm_action) avant tout envoi réel."
+                "Prépare un email SANS l'envoyer — crée une action en attente, "
+                "exécutée seulement après confirmation explicite via confirm_action."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "to": {"type": "string", "description": "Adresse email du destinataire."},
-                    "subject": {"type": "string", "description": "Objet de l'email."},
+                    "to": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Adresse email du destinataire — une seule adresse simple et valide, sans retour à la ligne.",
+                    },
+                    "subject": {
+                        "type": "string",
+                        "description": "Objet de l'email — une seule ligne, 200 caractères maximum.",
+                    },
                     "body": {"type": "string", "description": "Corps du message, texte brut."},
                 },
                 "required": ["to", "subject", "body"],
@@ -255,19 +249,17 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "propose_calendar_event",
             "description": (
-                "Prépare une création, modification ou suppression d'événement dans "
-                "l'agenda Google de l'utilisateur — NE L'APPLIQUE PAS. Stocke une "
-                "action en attente que l'utilisateur doit confirmer explicitement "
-                "(via confirm_action) avant toute modification réelle de l'agenda."
+                "Prépare une création/modification/suppression d'événement "
+                "SANS l'appliquer — confirmation explicite requise via confirm_action."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "action": {"type": "string", "description": "'create', 'update' ou 'delete'."},
-                    "event_id": {"type": ["string", "null"], "description": "Requis pour update/delete — identifiant de l'événement Google."},
-                    "title": {"type": ["string", "null"], "description": "Titre de l'événement (create/update)."},
-                    "start_datetime": {"type": ["string", "null"], "description": "Début, ISO 8601 (create/update)."},
-                    "end_datetime": {"type": ["string", "null"], "description": "Fin, ISO 8601 (create/update)."},
+                    "event_id": {"type": ["string", "null"], "description": "Requis pour update/delete."},
+                    "title": {"type": ["string", "null"], "description": "Titre (create/update)."},
+                    "start_datetime": {"type": ["string", "null"], "description": "Début ISO 8601."},
+                    "end_datetime": {"type": ["string", "null"], "description": "Fin ISO 8601."},
                     "description": {"type": ["string", "null"], "description": "Description optionnelle."},
                 },
                 "required": ["action"],
@@ -279,9 +271,9 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "confirm_action",
             "description": (
-                "Confirme et exécute réellement une action en attente (voir contexte) — "
-                "envoie l'email ou applique le changement d'agenda. N'appelle ceci que "
-                "si l'utilisateur vient de confirmer explicitement."
+                "Exécute une action en attente listée en contexte — UNIQUEMENT "
+                "si l'utilisateur vient explicitement de la confirmer. Jamais "
+                "dans le même échange que sa proposition."
             ),
             "parameters": {
                 "type": "object",
@@ -311,26 +303,21 @@ TOOLS_SCHEMA = [
         "function": {
             "name": "save_generated_document",
             "description": (
-                "Termine et joint à la conversation un document créé via les outils "
-                "word/excel/pdf (mcp_word_*, mcp_excel_*, mcp_pdf_*) — à appeler une "
-                "fois le document fini, avec le même nom de fichier utilisé lors de sa "
-                "création (create_document, create_workbook, markdown_to_pdf...)."
+                "Joint à la conversation un document créé via mcp_word_* / "
+                "mcp_excel_* / mcp_pdf_* — OBLIGATOIRE avant ta réponse finale, "
+                "avec le nom exact utilisé à la création. save_to_knowledge_base "
+                "=true seulement sur demande explicite."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "filename": {
                         "type": "string",
-                        "description": "Nom de fichier exact utilisé à la création (avec extension).",
+                        "description": "Nom exact utilisé à la création (avec extension).",
                     },
                     "save_to_knowledge_base": {
                         "type": ["boolean", "null"],
-                        "description": (
-                            "Si vrai, le document rejoint aussi la base de "
-                            "connaissances (RAG) en plus d'être joint à la "
-                            "conversation — seulement si l'utilisateur l'a demandé "
-                            "explicitement. Faux par défaut."
-                        ),
+                        "description": "Vrai = rejoint aussi le RAG, seulement sur demande explicite.",
                     },
                 },
                 "required": ["filename"],
@@ -340,46 +327,62 @@ TOOLS_SCHEMA = [
 ]
 
 
-def _build_tools_hint(reference_now: datetime) -> dict:
-    now = reference_now.isoformat(timespec="seconds")
+def _build_tools_hint() -> dict:
+    """Consigne d'outils STATIQUE — volontairement sans date/heure : ce
+    message ouvre chaque tour d'appels d'outils et doit rester IDENTIQUE
+    d'un appel à l'autre pour préserver le prompt caching côté provider
+    (préfixe stable). La date/heure vit dans _build_now_hint, placée en FIN
+    de contexte (voir run_*), où elle n'invalide que la queue du cache."""
     return {
         "role": "system",
         "content": (
-            f"Date et heure actuelles : {now}.\n"
             "Tu as accès à ces outils :\n"
-            "- remember_fact : retiens un fait durable sur l'utilisateur. "
-            "update_fact / forget_fact corrigent ou effacent un fait déjà connu "
-            "(identifiant exact entre crochets en contexte) — jamais en ajoutant "
-            "un doublon via remember_fact.\n"
-            "- set_reminder : programme un rappel, avec due_at (calculé à partir de "
-            "la date actuelle ci-dessus) si une date/heure est connue, sans due_at "
-            "sinon. cancel_reminder annule un rappel en attente listé en contexte.\n"
-            "- ask_user : signale qu'une question de clarification est posée.\n"
-            "- search_emails / list_upcoming_events : lecture seule Gmail/Calendar.\n"
-            "- propose_email / propose_calendar_event : préparent une action sans "
-            "l'exécuter — ENVOYER un email ou MODIFIER l'agenda exige TOUJOURS une "
-            "confirmation explicite de l'utilisateur avant confirm_action, jamais "
-            "d'exécution directe.\n"
-            "- confirm_action / cancel_action : à utiliser uniquement sur une action "
-            "listée en contexte, avec son identifiant exact, et seulement si "
-            "l'utilisateur vient clairement de confirmer ou d'annuler.\n"
-            "- mcp_word_* / mcp_excel_* / mcp_pdf_* : création de documents Word, "
-            "Excel et PDF (plusieurs appels successifs pour un même document sont "
-            "normaux : create_document/create_workbook puis add_heading/add_table/"
-            "write_workbook_data... ne t'arrête pas après le premier appel). "
-            "Utilise toujours le MÊME nom de fichier à chaque étape. OBLIGATOIRE : "
-            "dès la dernière étape de contenu terminée, appelle "
-            "save_generated_document avec ce nom AVANT de répondre en texte — "
-            "jamais de réponse finale sans cet appel, sans ça l'utilisateur n'a "
-            "aucun accès au fichier même s'il existe. Ajoute "
-            "save_to_knowledge_base=true seulement si l'utilisateur a "
-            "explicitement demandé que ce document rejoigne sa base de "
-            "connaissances.\n"
-            "Si tu as un doute sur un fait ou une date, pose la question à "
-            "l'utilisateur (via ask_user en plus de ta réponse) plutôt que de "
-            "deviner."
+            "- remember_fact / update_fact / forget_fact : mémoire durable "
+            "(faits stables uniquement). update/forget exigent l'identifiant "
+            "exact entre crochets — jamais de doublon via remember_fact.\n"
+            "- set_reminder / cancel_reminder : due_at ISO calculé depuis la "
+            "date/heure donnée en fin de contexte ; sans date connue, omets "
+            "due_at (reste en attente).\n"
+            "- ask_user : signale une question de clarification (en plus de "
+            "l'écrire normalement).\n"
+            "- search_emails / list_upcoming_events : lecture seule.\n"
+            "- propose_email / propose_calendar_event : préparent SANS "
+            "exécuter. confirm_action / cancel_action : seulement sur une "
+            "action listée en contexte, et confirm_action UNIQUEMENT après "
+            "une confirmation explicite dans un message séparé — jamais "
+            "proposer et confirmer dans le même tour.\n"
+            "- mcp_word_* / mcp_excel_* / mcp_pdf_* + save_generated_document : "
+            "création documentaire multi-étapes (normal), TOUJOURS le même "
+            "nom de fichier, et save_generated_document OBLIGATOIRE avant la "
+            "réponse finale.\n"
+            "Doute sur un fait/une date : question (ask_user) plutôt que deviner."
         ),
     }
+
+
+def _build_now_hint(reference_now: datetime) -> dict:
+    """Date/heure de référence DYNAMIQUE — placée juste avant le message
+    utilisateur (fin de contexte) pour ne pas casser le cache du préfixe
+    statique. Sert au calcul des due_at (set_reminder) et corrige la dérive
+    d'inférence via ctx.reference_now (voir _set_reminder)."""
+    return {
+        "role": "system",
+        "content": (
+            f"Date et heure actuelles : {reference_now.isoformat(timespec='seconds')}."
+        ),
+    }
+
+
+def _build_turns(messages: list[dict[str, str]], reference_now: datetime) -> list[dict]:
+    """Assemble le contexte dans l'ordre optimal coût/qualité :
+    [consigne statique (cachable)] + historique/contexte + [date dynamique] +
+    [message utilisateur]. Le dernier élément est toujours le message
+    utilisateur (les providers vision y attachent les images)."""
+    static_hint = _build_tools_hint()
+    now_hint = _build_now_hint(reference_now)
+    if not messages:
+        return [static_hint, now_hint]
+    return [static_hint, *messages[:-1], now_hint, messages[-1]]
 
 
 @dataclass
@@ -398,6 +401,9 @@ class ToolContext:
     storage: Any = None
     rag: Any = None
     saved_facts: list[str] = field(default_factory=list)
+    # Ledger tokens de la requête (une instance = un message utilisateur) —
+    # rempli à chaque appel LLM, loggé + renvoyé au client en fin de requête.
+    usage: RequestUsage = field(default_factory=RequestUsage)
     # Fichiers finalisés via save_generated_document PENDANT ce tour — le
     # routeur (chat_routes.py) les transforme en pièces jointes une fois le
     # message assistant persisté (voir la même logique que /upload).
@@ -540,8 +546,11 @@ async def _set_reminder(ctx: ToolContext, arguments: dict) -> str:
 
     try:
         celery_app = get_app()
+        # Queue dédiée `reminders` (pas `rag`) : un rappel temps-sensible ne
+        # doit jamais attendre derrière une ingestion lourde — voir
+        # extensions/worker_env.py et docker-compose.yml (worker dédié).
         async_result = celery_app.send_task(
-            "chat.fire_reminder", args=[reminder_id], eta=due_at, queue="rag"
+            "chat.fire_reminder", args=[reminder_id], eta=due_at, queue=REMINDERS_QUEUE
         )
         async with ctx.db.session() as session:
             row = await session.get(Reminder, reminder_id)
@@ -676,6 +685,13 @@ async def _propose_email(ctx: ToolContext, arguments: dict) -> str:
     body = str(arguments.get("body", "")).strip()
     if not to or not subject:
         return "Destinataire et objet requis."
+    # Validation stricte AVANT stockage : le destinataire/l'objet finissent
+    # en en-têtes MIME à l'envoi (xmailler) — refuser tôt plutôt que
+    # d'exécuter un envoi piégé à la confirmation.
+    if not _valid_email(to):
+        return f"Adresse destinataire invalide : {to[:80]!r} — fournis une adresse email simple et valide."
+    if not _valid_header(subject, _MAX_SUBJECT_LEN):
+        return "Objet invalide — une seule ligne de 200 caractères maximum, sans retour à la ligne."
 
     payload = {"to": to, "subject": subject, "body": body}
     summary = f"Envoyer un email à {to} — objet : « {subject} »"
@@ -960,6 +976,20 @@ _HANDLERS = {
 
 
 async def _execute_tool_call(ctx: ToolContext, name: str, arguments: dict) -> str:
+    """Point de passage UNIQUE de tous les résultats d'outils réinjectés au
+    modèle — plafonne à DONNA_TOOL_RESULT_MAX_CHARS : sans ça, un outil
+    verbeux (ex: lecture de document MCP, plusieurs dizaines de milliers de
+    caractères) est renvoyé EN ENTIER à chaque round, le poste de fuite n°1
+    du budget tokens (constaté : le contexte gonfle à chaque tour)."""
+    result = await _execute_tool_call_raw(ctx, name, arguments)
+    if len(result) > TOOL_RESULT_MAX_CHARS:
+        logger.info(
+            "résultat d'outil tronqué", tool=name, chars=len(result), max_chars=TOOL_RESULT_MAX_CHARS
+        )
+    return cap_text(result, TOOL_RESULT_MAX_CHARS)
+
+
+async def _execute_tool_call_raw(ctx: ToolContext, name: str, arguments: dict) -> str:
     if name.startswith("mcp_"):
         if ctx.mcp is None:
             return "Outils de documents (word/excel/pdf) indisponibles côté serveur."
@@ -996,7 +1026,11 @@ _EMPTY_REPLY_NUDGE = {
 
 
 async def _recover_empty_reply(
-    ollama, turns: list[dict], images_b64: list[str] | None, force_ollama: bool = False
+    ollama,
+    turns: list[dict],
+    images_b64: list[str] | None,
+    force_ollama: bool = False,
+    usage: RequestUsage | None = None,
 ) -> str:
     """Filet de sécurité : un modèle peut clôturer une série d'appels
     d'outils par une réponse texte vide au lieu de confirmer (constaté en
@@ -1004,9 +1038,13 @@ async def _recover_empty_reply(
     plus, sans outils, pour forcer une vraie confirmation. Si même ça ne
     donne rien, un texte générique vaut mieux qu'une réponse vide."""
     turns.append(_EMPTY_REPLY_NUDGE)
+    if usage is not None:
+        usage.add_request(turns, None)
     retry = await ollama.chat_with_tools(
         turns, tools=None, images_b64=images_b64, force_ollama=force_ollama
     )
+    if usage is not None:
+        usage.add_response(retry.get("content"))
     return retry["content"] or "C'est fait."
 
 
@@ -1017,7 +1055,10 @@ async def run_chat_with_tools(
     remember_fact autant de fois que nécessaire avant de produire sa réponse
     finale, qui est ce que cette fonction retourne."""
     ctx.reference_now = datetime.now().astimezone()
-    turns = [_build_tools_hint(ctx.reference_now), *messages]
+    # Ordre cache-friendly : consigne statique d'abord, date dynamique en
+    # fin (voir _build_turns) — même contenu utile, bien meilleur taux de
+    # cache préfixe côté provider.
+    turns = _build_turns(messages, ctx.reference_now)
     # Le router (voir providers/router.py) sait déjà router une image vers
     # un provider vision qui supporte les tools s'il est configuré, et
     # désactive lui-même tools sur un repli Ollama (seul cas où tools+vision
@@ -1029,30 +1070,48 @@ async def run_chat_with_tools(
     force_ollama = False
 
     for _ in range(MAX_TOOL_ROUNDS):
+        # Budget tokens cumulé : au-delà, on force la réponse finale SANS
+        # outils plutôt que de continuer à gonfler le contexte (chaque round
+        # renvoie TOUT : historique + résultats d'outils accumulés). Le 1er
+        # round passe toujours (compteur à 0 au départ).
+        if ctx.usage.input_tokens >= MAX_INPUT_TOKENS_PER_REQUEST:
+            ctx.usage.budget_hit = True
+            logger.warning(
+                "budget tokens dépassé, réponse finale forcée",
+                **ctx.usage.summary(),
+            )
+            break
+        ctx.usage.add_request(turns, tools)
         result = await ollama.chat_with_tools(
             turns, tools=tools, images_b64=images_b64, force_ollama=force_ollama
         )
+        ctx.usage.add_response(result.get("content"))
         if result.pop("fell_back_to_ollama", False):
             force_ollama = True
+            ctx.usage.provider_fallbacks += 1
         tool_calls = result["tool_calls"]
         if not tool_calls:
             content = result["content"] or ""
             if content:
                 return content
-            return await _recover_empty_reply(ollama, turns, images_b64, force_ollama)
+            return await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
 
+        ctx.usage.tool_rounds += 1
         turns.append({"role": "assistant", "content": result["content"] or "", "tool_calls": tool_calls})
         for call in tool_calls:
             tool_result = await _execute_tool_call(ctx, call["name"], call["arguments"])
             turns.append({"role": "tool", "name": call["name"], "content": tool_result})
 
+    ctx.usage.add_request(turns, None)
     result = await ollama.chat_with_tools(
         turns, tools=None, images_b64=images_b64, force_ollama=force_ollama
     )
+    ctx.usage.add_response(result.get("content"))
     if result.pop("fell_back_to_ollama", False):
         force_ollama = True
+        ctx.usage.provider_fallbacks += 1
     content = result["content"] or ""
-    return content or await _recover_empty_reply(ollama, turns, images_b64, force_ollama)
+    return content or await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
 
 
 async def run_chat_stream_with_tools(
@@ -1063,7 +1122,10 @@ async def run_chat_stream_with_tools(
     fractionné et remonte comme événement ({'type': 'tool_call', ...}) une
     fois exécuté."""
     ctx.reference_now = datetime.now().astimezone()
-    turns = [_build_tools_hint(ctx.reference_now), *messages]
+    # Ordre cache-friendly : consigne statique d'abord, date dynamique en
+    # fin (voir _build_turns) — même contenu utile, bien meilleur taux de
+    # cache préfixe côté provider.
+    turns = _build_turns(messages, ctx.reference_now)
     # Le router (voir providers/router.py) sait déjà router une image vers
     # un provider vision qui supporte les tools s'il est configuré, et
     # désactive lui-même tools sur un repli Ollama (seul cas où tools+vision
@@ -1074,9 +1136,18 @@ async def run_chat_stream_with_tools(
     force_ollama = False
 
     for _ in range(MAX_TOOL_ROUNDS):
+        # Même budget que la version non-streaming (voir run_chat_with_tools).
+        if ctx.usage.input_tokens >= MAX_INPUT_TOKENS_PER_REQUEST:
+            ctx.usage.budget_hit = True
+            logger.warning(
+                "budget tokens dépassé, réponse finale forcée",
+                **ctx.usage.summary(),
+            )
+            break
         content_parts: list[str] = []
         tool_calls: list[dict] = []
 
+        ctx.usage.add_request(turns, tools)
         async for event in ollama.chat_stream_with_tools(
             turns, tools=tools, images_b64=images_b64, force_ollama=force_ollama
         ):
@@ -1087,14 +1158,17 @@ async def run_chat_stream_with_tools(
                 tool_calls = event["calls"]
             elif event["type"] == "provider_fallback":
                 force_ollama = True
+                ctx.usage.provider_fallbacks += 1
                 yield event
+        ctx.usage.add_response("".join(content_parts))
 
         if not tool_calls:
             if not content_parts:
-                recovered = await _recover_empty_reply(ollama, turns, images_b64, force_ollama)
+                recovered = await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
                 yield {"type": "delta", "content": recovered}
             return
 
+        ctx.usage.tool_rounds += 1
         turns.append(
             {"role": "assistant", "content": "".join(content_parts), "tool_calls": tool_calls}
         )
@@ -1109,6 +1183,7 @@ async def run_chat_stream_with_tools(
             turns.append({"role": "tool", "name": call["name"], "content": tool_result})
 
     final_parts: list[str] = []
+    ctx.usage.add_request(turns, None)
     async for event in ollama.chat_stream_with_tools(
         turns, tools=None, images_b64=images_b64, force_ollama=force_ollama
     ):
@@ -1117,8 +1192,10 @@ async def run_chat_stream_with_tools(
             yield event
         elif event["type"] == "provider_fallback":
             force_ollama = True
+            ctx.usage.provider_fallbacks += 1
             yield event
+    ctx.usage.add_response("".join(final_parts))
 
     if not final_parts:
-        recovered = await _recover_empty_reply(ollama, turns, images_b64, force_ollama)
+        recovered = await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
         yield {"type": "delta", "content": recovered}

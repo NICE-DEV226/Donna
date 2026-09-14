@@ -391,6 +391,9 @@
         "preview": "Aperçu dans DONNA"
       }
     },
+    "thinking": {
+      "searching": "DONNA réfléchit…"
+    },
     "attachmentPreview": {
       "close": "Fermer l'aperçu",
       "openExternal": "Ouvrir l'original",

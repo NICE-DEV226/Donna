@@ -102,14 +102,21 @@ class RagService(BaseService):
     def __init__(self, config: dict[str, Any]) -> None:
         super().__init__()
         self._cfg = config or {}
-        self._db_url = self._cfg.get("db_url", "sqlite+aiosqlite:///data/db.sqlite3")
-        self._embed_model = self._cfg.get("embed_model", "nomic-embed-text")
-        self._embed_dim = int(self._cfg.get("embed_dim", 768))
-        self._ollama_base_url = self._cfg.get("ollama_base_url", "http://localhost:11434")
+        # `or` plutôt que défauts de .get() : l'interpolation xcore résout
+        # une variable absente en CHAÎNE VIDE (pas en clé manquante) — sans
+        # ça, ${RAG_EMBED_MODEL} non posé donnait model="" (appel Ollama
+        # invalide) et int("") levait au démarrage.
+        self._db_url = self._cfg.get("db_url") or "sqlite+aiosqlite:///data/db.sqlite3"
+        self._embed_model = self._cfg.get("embed_model") or "nomic-embed-text"
+        try:
+            self._embed_dim = int(self._cfg.get("embed_dim") or 768)
+        except (TypeError, ValueError):
+            self._embed_dim = 768
+        self._ollama_base_url = self._cfg.get("ollama_base_url") or "http://localhost:11434"
         # Fournisseur d'embeddings : "ollama" (défaut, local) ou tout
         # provider exposant une API compatible OpenAI /embeddings (ex:
         # gemini) — voir docstring de module pour la config complète.
-        self._embed_provider = self._cfg.get("embed_provider", "ollama")
+        self._embed_provider = self._cfg.get("embed_provider") or "ollama"
         self._embed_api_key = self._cfg.get("embed_api_key")
         # Repli automatique : un provider cloud demandé sans clé configurée
         # ne doit jamais faire planter le service — reste sur Ollama local,
@@ -126,8 +133,8 @@ class RagService(BaseService):
             "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
             "jina": "https://api.jina.ai/v1",
         }
-        self._embed_base_url = self._cfg.get(
-            "embed_base_url", default_embed_base_urls.get(self._embed_provider, self._ollama_base_url)
+        self._embed_base_url = self._cfg.get("embed_base_url") or default_embed_base_urls.get(
+            self._embed_provider, self._ollama_base_url
         )
         self._rerank_enabled = bool(self._cfg.get("rerank_enabled", True))
         self._engine = None
@@ -260,6 +267,42 @@ class RagService(BaseService):
         resp.raise_for_status()
         return resp.json()["data"][0]["embedding"]
 
+    async def embed_many(self, contents: list[str]) -> list[list[float]]:
+        """Embeddings par lot — UN seul round-trip HTTP pour N chunks au lieu
+        de N (l'ingestion d'un document de 100 chunks passait de 100 appels
+        séquentiels à ~7). Même sémantique que N appels embed() ; repli
+        séquentiel automatique si le provider refuse le lot (format de
+        réponse inattendu) — l'ingestion ne casse jamais sur une
+        particularité provider (ex: endpoint qui n'accepte que du scalaire)."""
+        if not contents:
+            return []
+        if len(contents) == 1:
+            return [await self.embed(contents[0])]
+        try:
+            if self._embed_provider == "ollama":
+                # /api/embed accepte input: string | string[].
+                resp = await self._http.post(
+                    "/api/embed", json={"model": self._embed_model, "input": contents}
+                )
+                resp.raise_for_status()
+                embeddings = resp.json()["embeddings"]
+            else:
+                resp = await self._http.post(
+                    "/embeddings", json={"model": self._embed_model, "input": contents}
+                )
+                resp.raise_for_status()
+                data = resp.json()["data"]
+                embeddings = [d["embedding"] for d in sorted(data, key=lambda d: d.get("index", 0))]
+            if not isinstance(embeddings, list) or len(embeddings) != len(contents):
+                raise ValueError(
+                    f"lot embeddings inattendu ({len(embeddings) if isinstance(embeddings, list) else '?'} "
+                    f"vecteurs pour {len(contents)} textes)"
+                )
+            return embeddings
+        except Exception as exc:
+            logger.warning("embeddings par lot échoués, repli séquentiel : %s", exc)
+            return [await self.embed(content) for content in contents]
+
     # ── Ingestion ────────────────────────────────────────────
 
     async def index_chunk(
@@ -270,7 +313,23 @@ class RagService(BaseService):
         content: str,
         metadata: dict | None = None,
     ) -> int:
-        embedding = await self.embed(content)
+        return await self.index_chunk_with_embedding(
+            tenant_id, doc_id, chunk_index, content, await self.embed(content), metadata
+        )
+
+    async def index_chunk_with_embedding(
+        self,
+        tenant_id: str,
+        doc_id: str,
+        chunk_index: int,
+        content: str,
+        embedding: list[float],
+        metadata: dict | None = None,
+    ) -> int:
+        """Insertion d'un chunk dont l'embedding est déjà calculé — utilisée
+        par l'ingestion par lots (embed_many) pour découpler le coût HTTP
+        (1 appel pour N chunks) du coût d'écriture (1 transaction par chunk,
+        sémantique inchangée)."""
 
         async with self._engine.begin() as conn:
             result = await conn.execute(
