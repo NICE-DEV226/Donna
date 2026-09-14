@@ -100,7 +100,7 @@ whisper:
 # Attention : "grok" (xAI) et "groq" (api.groq.com, inference rapide sur
 # modèles open-source) sont deux providers distincts, ne pas confondre.
 llm:
-  provider: "groq"   # ollama | anthropic | openai | grok | groq | gemini | openrouter
+  provider: "openrouter" # anthropic | openai | grok | groq | gemini | openrouter
   anthropic:
     model: "claude-sonnet-5"
     max_tokens: 4096
