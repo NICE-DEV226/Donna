@@ -36,16 +36,20 @@ describe('ResearchTrace', () => {
     component = fixture.componentInstance;
   });
 
-  it('est replié une fois la recherche finie, ouvert pendant', () => {
-    expect(host.querySelector('details')!.open).toBe(false);
+  it('s’affiche toujours déroulé, sans qu’on ait à le déplier à la main', () => {
+    // Terminée : la trace est visible telle quelle, pas réduite à un libellé.
+    expect(host.querySelector('.trace-header')).not.toBeNull();
+    expect(host.querySelectorAll('li')).toHaveLength(2);
 
+    // En cours : toujours visible.
     component.live.set(true);
     detect();
-    expect(host.querySelector('details')!.open).toBe(true);
+    expect(host.querySelector('.trace-header')).not.toBeNull();
+    expect(host.querySelectorAll('li')).toHaveLength(2);
   });
 
   it('annonce le nombre d’outils utilisés', () => {
-    expect(host.querySelector('summary')?.textContent).toContain('2');
+    expect(host.querySelector('.trace-header')?.textContent).toContain('2');
   });
 
   it('liste les outils invoqués sans jamais les confondre avec des sources : pas de lien', () => {
@@ -70,13 +74,13 @@ describe('ResearchTrace', () => {
   });
 
   it('suit le changement de langue', () => {
-    const summary = host.querySelector('summary')!;
-    expect(summary.textContent).toContain(EN.workspace.research.done.replace('{{count}}', ''));
+    const header = host.querySelector('.trace-header')!;
+    expect(header.textContent).toContain(EN.workspace.research.done.replace('{{count}}', ''));
 
     TestBed.inject(Language).set('fr');
     detect();
 
-    const summaryFr = host.querySelector('summary')!;
-    expect(summaryFr.textContent).toContain(FR.workspace.research.done.replace('{{count}}', ''));
+    const headerFr = host.querySelector('.trace-header')!;
+    expect(headerFr.textContent).toContain(FR.workspace.research.done.replace('{{count}}', ''));
   });
 });

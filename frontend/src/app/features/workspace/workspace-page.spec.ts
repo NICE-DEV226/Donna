@@ -161,15 +161,16 @@ describe('WorkspacePage', () => {
       expect(host.querySelectorAll('research-trace li').length).toBeGreaterThan(early);
     });
 
-    it('attache les sources à la réponse, repliées mais conservées', () => {
+    it('garde la trace déroulée automatiquement, sans manip', () => {
       store.send('question');
       vi.advanceTimersByTime(1600);
       detect();
 
-      const card = host.querySelector('conversation-panel research-trace details')!;
+      const card = host.querySelector('conversation-panel research-trace')!;
       expect(card).not.toBeNull();
-      // Repliée pour ne pas encombrer la lecture…
-      expect((card as HTMLDetailsElement).open).toBe(false);
+      // Le panneau de réflexion est DÉPLIÉ de lui-même : pas de clic pour relire.
+      const panel = host.querySelector('conversation-panel li details') as HTMLDetailsElement | null;
+      expect(panel?.open).toBe(true);
       // …mais la preuve est toujours là.
       expect(card.querySelectorAll('li').length).toBeGreaterThan(0);
       expect(card.querySelector('mark')).not.toBeNull();

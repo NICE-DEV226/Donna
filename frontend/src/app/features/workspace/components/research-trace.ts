@@ -1,20 +1,21 @@
-import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, booleanAttribute, input } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { UiIcon } from '../../../shared/ui/ui-icon';
 import type { TraceEntry } from '../workspace.store';
 
 /**
  * Ce que DONNA a fait pendant qu'elle réfléchissait — outils invoqués
- * (mémoire, calendrier, email, documents…), dans le fil, repliable.
+ * (mémoire, calendrier, email, documents…), dans le fil.
  *
  * Pas des sources citables : un outil comme `set_reminder` ou
  * `save_generated_document` n'est pas un document à relire. Les vraies
  * citations RAG vivent à part, sous la réponse (voir message.sources dans
  * conversation-panel.html).
  *
- * Ouvert tant que la recherche est en cours — on voit les outils arriver —
- * puis replié une fois la réponse écrite : la trace reste accessible sans
- * encombrer la lecture.
+ * La trace est TOUJOURS rendue déroulée : le pliage est la responsabilité du
+ * panneau parent (conversation-panel), jamais d'un clic sur la trace — comme
+ * ChatGPT, elle s'affiche d'elle-même et ne demande aucune manip pour être
+ * relue. Le parent la borne (hauteur max + défilement interne).
  */
 @Component({
   selector: 'research-trace',
@@ -24,17 +25,8 @@ import type { TraceEntry } from '../workspace.store';
 })
 export class ResearchTrace {
   readonly entries = input.required<readonly TraceEntry[]>();
-  /** Recherche en cours : le panneau reste ouvert et le libellé change. */
+  /** Recherche en cours : le libellé passe en « Donna réfléchit… ». */
   readonly live = input(false, { transform: booleanAttribute });
-
-  private readonly manual = signal<boolean | null>(null);
-
-  /** Ouvert d'office pendant la recherche, replié ensuite — sauf choix explicite. */
-  protected readonly open = computed(() => this.manual() ?? this.live());
-
-  protected toggle(open: boolean): void {
-    this.manual.set(open);
-  }
 
   /** "save_generated_document" → "Save generated document" — lisible sans dictionnaire de libellés par outil. */
   protected label(name: string): string {

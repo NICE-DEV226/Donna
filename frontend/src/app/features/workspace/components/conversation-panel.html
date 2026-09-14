@@ -121,7 +121,22 @@
                       }
                     </div>
                   } @else {
-                    <div class="prose prose-sm max-w-none text-body-lg text-ink" [innerHTML]="(message.text ?? t(message.textKey ?? '')) | markdown"></div>
+                    <!--
+                      Réponse structurée : si le backend a renvoyé une réponse
+                      avec des balises <thinking>/<search>/<answer> (dont le
+                      streaming arrive par morceaux), le composant
+                      expandable-response les rend en sections repliables +
+                      réponse toujours visible. Sinon (texte classique), on
+                      garde le rendu markdown d'origine.
+                    -->
+                    @if (containsStructureTags(message.text)) {
+                      <expandable-response [content]="message.text" />
+                    } @else {
+                      <div
+                        class="prose prose-sm max-w-none text-body-lg text-ink"
+                        [innerHTML]="(message.text ?? t(message.textKey ?? '')) | markdown"
+                      ></div>
+                    }
                     @if (store.streaming() && $last) {
                       <span class="stream-cursor" aria-hidden="true"></span>
                     }
@@ -242,10 +257,13 @@
 
         @if (store.isThinking()) {
           <!--
-            Panneau de réflexion expansible (style Claude/ChatGPT) :
-            - Par défaut ouvert pendant la réflexion, repliable par l'utilisateur
-            - Affiche la trace d'outils en direct (recherche, outils, fallback)
-            - Indicateur visuel "Donna réfléchit..." dans le résumé
+            Panneau de réflexion (style Claude/ChatGPT) :
+            - BORNÉ : hauteur max (jamais plus d'un demi-écran) — le ENTIER
+              panneau (résumé + trace) reste dans le fil, le contenu défile
+              DANS le panneau (seule la zone centrale scrolle), jamais la page.
+            - DÉPLIÉ AUTOMATIQUEMENT : ouvert par défaut pendant la réflexion,
+              l'utilisateur peut le replier/rouvrir d'un clic, mais JAMAIS il
+              n'a besoin de le déplier à la main pour relire les recherches.
           -->
           <li class="message-in flex gap-md" aria-hidden="true">
             <span
@@ -256,12 +274,12 @@
 
             <div class="min-w-0 grow">
               <details
-                class="group rounded-lg border border-line bg-surface"
+                class="group flex max-h-[min(60vh,32rem)] flex-col overflow-hidden rounded-lg border border-line bg-surface"
                 [open]="store.thinkingPanelOpen()"
                 (toggle)="store.setThinkingPanelOpen($any($event.target).open)"
               >
                 <summary
-                  class="flex cursor-pointer items-center gap-sm px-md py-sm text-body-sm text-ink-muted transition-colors hover:text-ink"
+                  class="flex shrink-0 cursor-pointer items-center gap-sm px-md py-sm text-body-sm text-ink-muted transition-colors hover:text-ink"
                 >
                   <span class="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true"></span>
                   <span>{{ t('workspace.thinking.searching') }}</span>
@@ -272,7 +290,7 @@
                   />
                 </summary>
 
-                <div class="border-t border-line p-md">
+                <div class="min-h-0 grow overflow-y-auto border-t border-line p-md">
                   @if (store.liveTrace().length) {
                     <research-trace [entries]="store.liveTrace()" [live]="true" />
                   } @else {

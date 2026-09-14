@@ -1,0 +1,38 @@
+.expandable-response {
+  /* Le résumé d'un <details> affiche son marqueur natif par défaut — on le
+     retire : la chevron SVG (pilotée par la classe .er-open) fait le travail. */
+  summary {
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+
+  .er-chevron {
+    display: inline-flex;
+    transition: transform 200ms ease;
+
+    &.er-open {
+      transform: rotate(180deg);
+    }
+  }
+
+  /* Transition douce à l'ouverture/fermeture sans mesurer de hauteur :
+     on anime grid-template-rows entre 0fr et 1fr. Le conteneur intermédiaire
+     porte overflow: hidden pour tronquer pendant l'animation. */
+  .er-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 220ms ease;
+
+    .er-body-inner {
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
+  details[open] .er-body {
+    grid-template-rows: 1fr;
+  }
+}
