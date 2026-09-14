@@ -153,59 +153,33 @@ services:
       module: extensions.mcp_bridge.service:McpBridgeService
       config:
         servers:
-          word:
-            command: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/.venv/bin/python
-            args: ["/home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/word/word_mcp_server.py"]
-            cwd: data/mcp_documents/word
-            env:
-              PYTHONPATH: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/word
-            include:
-              - create_document
-              - add_paragraph
-              - add_heading
-              - add_picture
-              - add_table
-              - add_page_break
-              - insert_numbered_list_near_text
-              - format_text
-              - format_table
-              - convert_to_pdf
-              - get_document_text
-              - get_document_outline
-              - list_available_documents
-            path_params: [filename]   # isolation par tenant — voir McpBridgeService._namespaced_arguments
-          excel:
-            command: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/.venv/bin/python
-            args: ["/home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/excel/mcp_excel_server/__main__.py", "stdio"]
-            cwd: data/mcp_documents/excel
-            env:
-              PYTHONPATH: /home/nicedev/Desktop/devs-works/xcore-eco/Donna/backend/mcp_servers/excel
-              # Par défaut le serveur préfixe tout chemin relatif par
-              # "excel_files/" (EXCEL_MCP_FOLDER) — désactivé ici pour que
-              # les chemins namespacés par tenant (voir path_params
-              # ci-dessous) résolvent directement sous cwd, comme word/pdf.
-              EXCEL_MCP_FOLDER: "."
-            # EXCEL_MCP_list_workbooks exclu en permanence : ne prend aucun
-            # paramètre de chemin, donc impossible à isoler par tenant.
-            include:
-              - EXCEL_MCP_create_workbook
-              - EXCEL_MCP_write_workbook_data
-              - EXCEL_MCP_create_worksheet
-              - EXCEL_MCP_merge_cells
-              - EXCEL_MCP_get_workbook_info
-            path_params: [filename, filepath]   # deux noms différents selon l'outil
           pdf:
             command: uvx
             args: ["mcp-pdf"]
-            cwd: data/mcp_documents/pdf
-            env:
-              PYTHONWARNINGS: ignore   # une lib (PyMuPDF) écrit un warning sur stdout au démarrage, ce qui casse le parsing JSON-RPC du client MCP
-            include:
-              - documentassembly__merge_pdfs
-              - formmanagement__create_form_pdf
-              - formmanagement__fill_form_pdf
-              - imageprocessing__markdown_to_pdf
-            path_params: [output_path, input_path, markdown_path]
+          excel:
+            command: uvx
+            args: ["excel-mcp-server", "stdio"]
+          word:
+            command: uvx
+            args: ["--from", "office-word-mcp-server", "word_mcp_server"]
+        dynamic_servers:
+          filesystem:
+            command: uvx
+            args: ["filesystem-mcp", "{root}"]
+
+middleware:
+  - name: chat_rate_limit
+    module: "app.chat.src.http_middleware:ChatRateLimitMiddleware"
+    config:
+      - name: cache
+        type: internal
+        value: "cache"
+      - name: enabled
+        value: true
+      - name: max_requests
+        value: 60
+      - name: window_seconds
+        value: 60
 
 observability:
   logging:

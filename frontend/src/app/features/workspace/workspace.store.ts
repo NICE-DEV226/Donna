@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
-import type { AttachmentOut, SourceOut } from '../../core/chat/chat.service';
+import type { AttachmentOut, ContextStatusOut, SourceOut } from '../../core/chat/chat.service';
 import { ChatService } from '../../core/chat/chat.service';
 import { RagService } from '../../core/chat/rag.service';
 import { RealtimeService } from '../../core/chat/realtime.service';
@@ -160,6 +160,8 @@ export class WorkspaceStore {
   );
   /** Le fil affiché découle de la conversation ouverte : aucune copie à resynchroniser. */
   readonly messages = computed<readonly Message[]>(() => this.activeConversation()?.messages ?? []);
+  /** État de la compaction du contexte du fil OUVERT — voir ChatService.getContextStatus. */
+  readonly contextStatus = signal<ContextStatusOut | null>(null);
   readonly isThinking = signal(false);
   readonly thinkingPanelOpen = signal(true);
   /** Un flux de deltas est en cours d'écriture dans le dernier message DONNA (curseur + auto-scroll). */
@@ -469,6 +471,7 @@ export class WorkspaceStore {
         isRealId ? conversationIdAtStart : null,
       );
       this.reconcileConversationId(response.conversation_id);
+      if (response.context) this.contextStatus.set(response.context);
       this.pushMessage({
         author: 'donna',
         text: response.reply,
@@ -572,6 +575,7 @@ export class WorkspaceStore {
             ]);
             break;
           case 'done': {
+            if (event.context) this.contextStatus.set(event.context);
             if (event.sources.length > 0) {
               this.setLastMessageSources(event.sources.map(sourceRefFromOut));
             }
@@ -654,6 +658,14 @@ export class WorkspaceStore {
     this.isThinking.set(false);
     this.liveTrace.set([]);
     this.activeConversationId.set(id);
+    // Toujours rafraîchir le statut de compaction : le résumé est recalculé
+    // en arrière-plan (voir maybe_summarize), la barre doit suivre.
+    this.contextStatus.set(null);
+    void this.chat.getContextStatus(id).then((status) => {
+      if (this.activeConversationId() === id) this.contextStatus.set(status);
+    }).catch(() => {
+      // Sans statut (ex. endpoint absent en dev) la barre reste simplement masquée.
+    });
 
     const existing = this.conversations().find((c) => c.id === id);
     if (existing && existing.messages.length > 0) return;
@@ -799,6 +811,7 @@ export class WorkspaceStore {
     this.thinkingPanelOpen.set(true);
     this.streaming.set(false);
     this.liveTrace.set([]);
+    this.contextStatus.set(null);
     this.activeConversationId.set(null);
   }
 

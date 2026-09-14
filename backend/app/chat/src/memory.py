@@ -227,3 +227,139 @@ async def maybe_summarize(db, ollama: ProviderRouter, conversation_id: str) -> N
                 summary_row.covered_messages = new_covered
     except Exception as exc:
         logger.warning("résumé de conversation échoué (ignoré) : %s", exc)
+
+
+async def get_context_status(db, conversation_id: str) -> dict:
+    """État de la compaction du contexte pour le frontend — nombre total
+    de messages, ceux déjà compacts dans un résumé, ceux encore en clair,
+    taille du résumé, et pourcentage du budget utilisé (MAX_HISTORY_CHARS).
+
+    Appelé depuis les routes chat après chaque réponse, ET depuis un
+    endpoint dédié pour afficher un « badge santé » persistant."""
+    recent_c = (
+        select(
+            Message.content,
+            func.row_number()
+            .over(partition_by=Message.conversation_id, order_by=Message.created_at)
+            .label("rn"),
+        )
+        .where(Message.conversation_id == conversation_id)
+        .subquery()
+    )
+    async with db.session() as session:
+        rows = await session.execute(
+            select(
+                func.count(Message.id).label("total"),
+                func.coalesce(ConversationSummary.covered_messages, 0).label("covered"),
+                func.coalesce(func.length(ConversationSummary.summary), 0).label("summary_len"),
+            )
+            .outerjoin(
+                ConversationSummary,
+                ConversationSummary.conversation_id == Message.conversation_id,
+            )
+            .where(Message.conversation_id == conversation_id)
+        ).first()
+        covered = rows.covered
+        recent_chars = (
+            await session.scalar(
+                select(
+                    func.coalesce(func.sum(func.length(recent_c.c.content)), 0)
+                ).where(recent_c.c.rn > covered)
+            )
+        ) or 0
+    return _status_from_stats(rows.total, covered, rows.summary_len, recent_chars)
+
+
+async def get_context_statuses(db, conversation_ids: list[str]) -> dict[str, dict]:
+    """Version groupée de get_context_status — UNE requête pour N
+    conversations (liste de l'historique) : chaque conversation reçoit son
+    état sans N+1 queries."""
+    if not conversation_ids:
+        return {}
+
+    # Rangs des messages par conversation (les plus anciens = rn 1) pour
+    # isoler ceux qui restent "en clair" (rn > covered) après compaction.
+    ranked = (
+        select(
+            Message.conversation_id,
+            Message.content,
+            func.row_number()
+            .over(
+                partition_by=Message.conversation_id, order_by=Message.created_at
+            )
+            .label("rn"),
+        )
+        .where(Message.conversation_id.in_(conversation_ids))
+        .subquery()
+    )
+
+    async with db.session() as session:
+        counts = (
+            await session.execute(
+                select(
+                    Message.conversation_id,
+                    func.count(Message.id).label("total"),
+                )
+                .where(Message.conversation_id.in_(conversation_ids))
+                .group_by(Message.conversation_id)
+            )
+        ).all()
+        summary_rows = (
+            await session.execute(
+                select(
+                    ConversationSummary.conversation_id,
+                    ConversationSummary.covered_messages,
+                    func.length(ConversationSummary.summary),
+                ).where(ConversationSummary.conversation_id.in_(conversation_ids))
+            )
+        ).all()
+        recent_chars_rows = (
+            await session.execute(
+                select(
+                    ranked.c.conversation_id,
+                    func.sum(func.length(ranked.c.content)).label("recent_chars"),
+                )
+                .select_from(ranked)
+                .outerjoin(
+                    ConversationSummary,
+                    ConversationSummary.conversation_id == ranked.c.conversation_id,
+                )
+                .where(
+                    ranked.c.rn > func.coalesce(ConversationSummary.covered_messages, 0)
+                )
+                .group_by(ranked.c.conversation_id)
+            )
+        ).all()
+
+    totals = {r[0]: r[1] for r in counts}
+    summaries = {r[0]: (r[1], r[2]) for r in summary_rows}
+    recent_chars = {r[0]: r[1] for r in recent_chars_rows}
+    return {
+        cid: _status_from_stats(
+            totals.get(cid, 0),
+            summaries.get(cid, (0, 0))[0],
+            summaries.get(cid, (0, 0))[1],
+            recent_chars.get(cid, 0),
+        )
+        for cid in conversation_ids
+    }
+
+
+def _status_from_stats(
+    total: int, covered: int, summary_chars: int, recent_chars: int = 0
+) -> dict:
+    """Construit le dict de statut commun aux deux fonctions de stats.
+
+    Budget utilisé = taille du résumé (contexte compacté) + taille réelle
+    des messages gardés en clair. Le % est plafonné à 100 pour la barre de
+    progression du frontend."""
+    budget_used = summary_chars + recent_chars
+    pct = min(100, int(budget_used * 100 / MAX_HISTORY_CHARS)) if MAX_HISTORY_CHARS else 0
+    return {
+        "total_messages": total,
+        "covered_messages": covered,
+        "recent_messages": max(0, total - covered),
+        "summary_chars": summary_chars,
+        "context_budget_used_pct": pct,
+        "compacted": covered > 0,
+    }

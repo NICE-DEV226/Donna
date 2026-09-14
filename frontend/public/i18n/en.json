@@ -284,6 +284,10 @@
       "send": "Send",
       "caption": "Powered by XCore"
     },
+    "context": {
+      "budget": "Conversation context in use (summary + recent messages)",
+      "compacted": "Compacted"
+    },
     "connections": {
       "title": "Active connections",
       "connected": "Connected",

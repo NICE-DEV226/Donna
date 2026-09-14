@@ -100,7 +100,7 @@ whisper:
 # Attention : "grok" (xAI) et "groq" (api.groq.com, inference rapide sur
 # modèles open-source) sont deux providers distincts, ne pas confondre.
 llm:
-  provider: "openrouter"   # ollama | anthropic | openai | grok | groq | gemini | openrouter
+  provider: "groq"   # ollama | anthropic | openai | grok | groq | gemini | openrouter
   anthropic:
     model: "claude-sonnet-5"
     max_tokens: 4096
@@ -118,8 +118,41 @@ llm:
   # Gemini via sa couche de compatibilité OpenAI — mêmes outils
   # (remember_fact, set_reminder, Google...) que les autres providers cloud.
   gemini:
-    model: "gemini-flash-latest"
+    model: "gemini-2.5-flash"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+  # ── Middleware LLM : pipeline en oignon autour du ProviderRouter ────────
+  # Voir app/chat/src/providers/middleware/base.py. L'ordre réel est géré
+  # par main.py::_build_pipeline (observabilité externe → résilience
+  # interne). Disabled = middleware sauté ; tous les défauts ci-dessous.
+  middleware:
+    budget:
+      enabled: true
+      max_tokens: 8000          # garde-fou final côté input (tools cap déjà en amont)
+    cache:
+      enabled: true
+      ttl_seconds: 300
+      max_entries: 50
+    retry:
+      enabled: true
+      max_attempts: 2           # 2 tentatives max avant le repli Ollama du router
+      backoff_base: 1.0         # sleep = base * 2^(tentative-1)
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5      # échecs consécutifs avant ouverture du slot
+      recovery_timeout: 60      # secondes avant un test call (HALF_OPEN)
+    audit:
+      enabled: true
+      verbose: false            # false = hash-only (RGPD), true = texte en clair
+      file: data/chat_audit.jsonl
+      block_on_injection: false
+    tracing:
+      enabled: true             # spans en mémoire + GET /app/chat/traces
+    logging:
+      enabled: true
+      level: info
+    usage:
+      enabled: true
   # OpenRouter — OpenAI-compatible, multi-modèles (Llama, Qwen, etc.)
   # Base URL: https://openrouter.ai/api/v1
   openrouter:

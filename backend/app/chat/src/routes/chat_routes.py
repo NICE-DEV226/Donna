@@ -27,6 +27,8 @@ from ..memory import (
     format_facts_context,
     format_pending_actions_context,
     format_reminders_context,
+    get_context_status,
+    get_context_statuses,
     load_facts,
     load_pending_actions,
     load_suspended_reminders,
@@ -48,6 +50,7 @@ from ..schemas import (
     AttachmentOut,
     ChatRequest,
     ChatResponse,
+    ContextStatusOut,
     ConversationOut,
     FactOut,
     MessageOut,
@@ -265,6 +268,20 @@ def _build_sources(results: list[dict]) -> list[SourceOut]:
     ]
 
 
+async def _context_dict(db, conversation_id: str) -> dict:
+    """Dict brut de l'état de compaction — appelé par `_build_context_status`
+    (qui le wrappe en ContextStatusOut) et directement par les endpoints qui
+    doivent l'embarquer dans un objet proche, comme le rename."""
+    return await get_context_status(db, conversation_id)
+
+
+async def _build_context_status(db, conversation_id: str) -> ContextStatusOut:
+    """Construit le statut de compaction du contexte — asynchrone, appelé
+    après chaque réponse pour que le frontend affiche la santé du contexte."""
+    status = await get_context_status(db, conversation_id)
+    return ContextStatusOut(**status)
+
+
 async def _persist_generated_attachments(
     session, message_id: str, generated_files: list[dict]
 ) -> list[Attachment]:
@@ -398,6 +415,7 @@ def chats_router(
             tenant_id=tenant_id,
             user_id=user_id,
             conversation_id=conversation_id,
+            ollama=ollama,
         )
         # Unifie le ledger : les flags RAG (posés plus haut) et les appels
         # LLM (remplis dans run_*) vivent sur le MÊME objet, loggé + renvoyé
@@ -427,6 +445,8 @@ def chats_router(
         if ENABLE_SUMMARY:
             asyncio.create_task(maybe_summarize(db, ollama, conversation_id))
 
+        context_status = await _build_context_status(db, conversation_id)
+
         return ChatResponse(
             conversation_id=conversation_id,
             reply=reply_text,
@@ -434,6 +454,7 @@ def chats_router(
             memory_notes=tool_ctx.saved_facts,
             attachments=_build_attachments_out(attachments),
             usage=UsageOut(**usage.summary()),
+            context=context_status,
         )
 
     @router.post(
@@ -481,6 +502,7 @@ def chats_router(
             tenant_id=tenant_id,
             user_id=user_id,
             conversation_id=conversation_id,
+            ollama=ollama,
         )
         # Même unification du ledger que l'endpoint non-streaming (voir
         # commentaire sur l'autre endpoint) — l'usage est loggé + renvoyé
@@ -540,9 +562,10 @@ def chats_router(
 
             sources = [s.model_dump() for s in _build_sources(rag_results)]
             attachments_out = [a.model_dump(mode="json") for a in _build_attachments_out(attachments)]
+            context_status = (await _build_context_status(db, conversation_id)).model_dump(mode="json")
             yield (
                 "event: done\n"
-                f"data: {json.dumps({'sources': sources, 'memory_notes': tool_ctx.saved_facts, 'attachments': attachments_out, 'usage': usage.summary()})}\n\n"
+                f"data: {json.dumps({'sources': sources, 'memory_notes': tool_ctx.saved_facts, 'attachments': attachments_out, 'usage': usage.summary(), 'context': context_status})}\n\n"
             )
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -727,6 +750,7 @@ def chats_router(
             tenant_id=tenant_id,
             user_id=user_id,
             conversation_id=conversation_id_out,
+            ollama=ollama,
         )
         # Unification du ledger (voir endpoint POST /).
         tool_ctx.usage = usage
@@ -754,6 +778,8 @@ def chats_router(
         if ENABLE_SUMMARY:
             asyncio.create_task(maybe_summarize(db, ollama, conversation_id_out))
 
+        context_status = await _build_context_status(db, conversation_id_out)
+
         return ChatResponse(
             conversation_id=conversation_id_out,
             reply=reply_text,
@@ -761,6 +787,7 @@ def chats_router(
             memory_notes=tool_ctx.saved_facts,
             attachments=_build_attachments_out(attachments),
             usage=UsageOut(**usage.summary()),
+            context=context_status,
         )
 
     @router.get("/", summary="Lister mes conversations", response_model=list[ConversationOut])
@@ -782,7 +809,11 @@ def chats_router(
                 )
             ).scalars().all()
 
-        return [ConversationOut(id=c.id, title=c.title) for c in rows]
+        convs = [ConversationOut(id=c.id, title=c.title) for c in rows]
+        statuses = await get_context_statuses(db, [c.id for c in convs])
+        for conv in convs:
+            conv.context = ContextStatusOut(**statuses.get(conv.id, {}))
+        return convs
 
     @router.patch(
         "/{conversation_id}",
@@ -806,7 +837,26 @@ def chats_router(
             conversation.title = title
             result = ConversationOut(id=conversation.id, title=conversation.title)
 
+        result.context = ContextStatusOut(**await _context_dict(db, conversation_id))
         return result
+
+    @router.get(
+        "/{conversation_id}/context",
+        summary="État de la compaction du contexte d'une conversation",
+        response_model=ContextStatusOut,
+    )
+    async def get_conversation_context(
+        conversation_id: str,
+        current_user: AuthPayload = Depends(get_current_user),
+    ) -> ContextStatusOut:
+        tenant_id = _tenant_of(current_user)
+
+        async with db.session() as session:
+            conversation = await session.get(Conversation, conversation_id)
+            if conversation is None or conversation.tenant_id != tenant_id:
+                raise HTTPException(404, "Conversation introuvable")
+
+        return await _build_context_status(db, conversation_id)
 
     @router.delete("/{conversation_id}", summary="Supprimer une conversation")
     async def delete_conversation(
@@ -1111,6 +1161,7 @@ def chats_router(
             mcp=mcp,
             storage=storage,
             rag=rag,
+            ollama=ollama,
         )
         result = await confirm_pending_action(tool_ctx, action_id)
         return {"result": result}
@@ -1138,6 +1189,7 @@ def chats_router(
             mcp=mcp,
             storage=storage,
             rag=rag,
+            ollama=ollama,
         )
         result = await cancel_pending_action(tool_ctx, action_id)
         return {"result": result}
