@@ -284,6 +284,10 @@
       "send": "Envoyer",
       "caption": "Propulsé par XCore"
     },
+    "context": {
+      "budget": "Contexte de la discussion utilisé (résumé + messages récents)",
+      "compacted": "Compacté"
+    },
     "connections": {
       "title": "Connexions actives",
       "connected": "Connecté",
@@ -291,7 +295,8 @@
       "drive": "Google Drive",
       "calendar": "Google Agenda",
       "slack": "Slack",
-      "gmail": "Gmail"
+      "gmail": "Gmail",
+      "web_search": "Recherche web"
     },
     "message": {
       "you": "Vous",
@@ -548,6 +553,9 @@
       },
       "gmail": {
         "detail": "Fils, brouillons et pièces jointes"
+      },
+      "web_search": {
+        "detail": "Résultats web via DuckDuckGo"
       }
     },
     "notifications": {

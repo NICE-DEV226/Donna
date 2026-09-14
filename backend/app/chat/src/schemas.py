@@ -10,6 +10,18 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
 
 
+class ContextStatusOut(BaseModel):
+    """État de la compaction du contexte — visible à chaque réponse ET sur
+    un endpoint dédié, pour que le frontend affiche la « santé » du contexte
+    (barre de progression, badge compacté, etc.)."""
+    total_messages: int
+    covered_messages: int
+    recent_messages: int
+    summary_chars: int
+    context_budget_used_pct: int
+    compacted: bool
+
+
 class UsageOut(BaseModel):
     llm_calls: int = 0
     input_tokens: int = 0
@@ -43,15 +55,14 @@ class ChatResponse(BaseModel):
     sources: list[SourceOut] = []
     memory_notes: list[str] = []
     attachments: list[AttachmentOut] = []
-    # Comptabilité tokens de la requête (estimation — voir usage.py) : rend
-    # le coût VISIBLE côté client pour piloter les budgets. Additif : les
-    # clients qui l'ignorent ne cassent pas.
     usage: UsageOut | None = None
+    context: ContextStatusOut | None = None
 
 
 class ConversationOut(BaseModel):
     id: str
     title: str
+    context: ContextStatusOut | None = None
 
 
 class RenameConversationRequest(BaseModel):

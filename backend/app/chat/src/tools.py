@@ -15,6 +15,7 @@ from extensions.doc_extract.extract import ExtractionError, extract_text
 from extensions.donna_settings import (
     MAX_INPUT_TOKENS_PER_REQUEST,
     MAX_TOOL_ROUNDS,
+    SUB_AGENT_MAX_TOOL_ROUNDS,
     TOOL_RESULT_MAX_CHARS,
 )
 from extensions.worker_env import REMINDERS_QUEUE
@@ -324,6 +325,66 @@ TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": (
+                "Recherche sur le web via DuckDuckGo. Renvoie des résultats "
+                "(titre, lien, extrait) pour trouver des informations en "
+                "ligne, vérifier un fait ou compléter une réponse avec des "
+                "sources extérieures."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "La requête de recherche, précise et en français.",
+                    },
+                    "max_results": {
+                        "type": ["integer", "null"],
+                        "description": "Nombre max de résultats (défaut : 10).",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delegate_to_subagent",
+            "description": (
+                "Délègue un travail documentaire à un sous-agent spécialisé "
+                "qui a les bons outils MCP (Word, Excel, PDF). Donne-lui une "
+                "consigne précise ; il exécute et renvoie un résumé du résultat."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "agent": {
+                        "type": "string",
+                        "enum": ["redacteur", "analyste"],
+                        "description": (
+                            "Sous-agent : 'redacteur' (création/édition "
+                            "documents Word, lecture PDF) ou 'analyste' "
+                            "(classeurs Excel, extraction PDF)."
+                        ),
+                    },
+                    "task": {
+                        "type": "string",
+                        "description": (
+                            "Consigne précise du travail à accomplir : "
+                            "contexte, format souhaité, chemin/nom du "
+                            "fichier résultat, etc."
+                        ),
+                    },
+                },
+                "required": ["agent", "task"],
+            },
+        },
+    },
 ]
 
 
@@ -351,10 +412,14 @@ def _build_tools_hint() -> dict:
             "action listée en contexte, et confirm_action UNIQUEMENT après "
             "une confirmation explicite dans un message séparé — jamais "
             "proposer et confirmer dans le même tour.\n"
-            "- mcp_word_* / mcp_excel_* / mcp_pdf_* + save_generated_document : "
-            "création documentaire multi-étapes (normal), TOUJOURS le même "
-            "nom de fichier, et save_generated_document OBLIGATOIRE avant la "
-            "réponse finale.\n"
+            "- delegate_to_subagent : confie UN travail documentaire à un "
+            "sous-agent spécialisé et attend son résumé. Le sous-agent "
+            "revient une seule fois (résultat final) ; s'il a produit un "
+            "document, tu appelles ensuite save_generated_document avec le "
+            "nom exact utilisé.\n"
+            "- save_generated_document : joint à la conversation un document "
+            "créé par un sous-agent (nom exact de la création) — OBLIGATOIRE "
+            "avant la réponse finale si un document a été produit.\n"
             "Doute sur un fait/une date : question (ask_user) plutôt que deviner."
         ),
     }
@@ -404,6 +469,14 @@ class ToolContext:
     # Ledger tokens de la requête (une instance = un message utilisateur) —
     # rempli à chaque appel LLM, loggé + renvoyé au client en fin de requête.
     usage: RequestUsage = field(default_factory=RequestUsage)
+    # ProviderRouter (ou OllamaClient) pour exécuter les boucles LLM —
+    # utilisé par le handler delegation (sous-agents) qui a besoin d'appeler
+    # le LLM lui-même, depuis _delegate_to_subagent.
+    ollama: Any = None
+    # True une fois qu'un repli Ollama a eu lieu pendant CE tour —
+    # partagé entre la boucle principale et les sous-agents pour ne pas
+    # retenter le cloud après un premier échec.
+    force_ollama: bool = False
     # Fichiers finalisés via save_generated_document PENDANT ce tour — le
     # routeur (chat_routes.py) les transforme en pièces jointes une fois le
     # message assistant persisté (voir la même logique que /upload).
@@ -958,6 +1031,117 @@ async def _save_generated_document(ctx: ToolContext, arguments: dict) -> str:
     return result
 
 
+async def _web_search(ctx: ToolContext, arguments: dict) -> str:
+    """Recherche web DuckDuckGo via le pont MCP (`duckduckgo` -> tool
+    natif `search`). Le pont est la seule source : pas de clé API à gérer
+    ici, et le serveur (uvx duckduckgo-mcp-server) est déclaré en config
+    comme les autres (pdf/excel/word)."""
+    if ctx.mcp is None:
+        return "Recherche web indisponible (ext.mcp_bridge non connecté)."
+    try:
+        content = await ctx.mcp.call_tool("duckduckgo", "search", arguments)
+        return "\n".join(
+            part.text
+            for part in content
+            if getattr(part, "text", None)
+        ) or "Aucun résultat."
+    except Exception as exc:
+        logger.warning("web_search échoué : %s", exc)
+        return "La recherche web a échoué, réessaie plus tard."
+
+
+async def _delegate_to_subagent(ctx: ToolContext, arguments: dict) -> str:
+    """Délègue une tâche documentaire à un sous-agent : sa propre boucle
+    LLM, SCOPÉE à ses propres outils MCP (catalog.mcp_tools_for_agent),
+    jamais ceux de Donna — le point clé du design « donna orchestre ».
+
+    Le sous-agent tourne sur un contexte FRAIS (sa spécialité + la
+    consigne), exécute ses appels d'outils, et renvoie ici seulement son
+    résumé final — pas les étapes intermédiaires, qui ne doivent pas
+    polluer le contexte de Donna."""
+
+    agent = str(arguments.get("agent", "")).strip()
+    task = str(arguments.get("task", "")).strip()
+    if not agent or not task:
+        return "Champs 'agent' et 'task' requis."
+    if ctx.mcp is None:
+        return "Sous-agents (documents) indisponibles côté serveur."
+    if ctx.ollama is None:
+        return "Moteur de sous-agents indisponible côté serveur."
+
+    tools = ctx.mcp.list_tools_schema_for_agent(agent)
+
+    # Serveur filesystem scopé, ouvert sur la racine du dossier courant
+    # du tenant : le sous-agent peut lire/écrire les fichiers de mission
+    # (pièces jointes, documents produits) en plus de ses serveurs métier
+    # (pdf/word/excel). open_scoped_server est idempotent par
+    # (category, key) : rejoué à chaque délégation il est réutilisé tant
+    # qu'il tourne, et fermé par close_all_scoped_servers à l'arrêt du
+    # service (voir la limite documentée dans extensions/mcp_bridge).
+    scoped_key = ctx.tenant_id
+    scoped_root = _MCP_DOCUMENTS_ROOT / ctx.tenant_id
+    try:
+        scoped_root.mkdir(parents=True, exist_ok=True)
+        await ctx.mcp.open_scoped_server("filesystem", scoped_key, str(scoped_root))
+        tools += ctx.mcp.list_tools_schema_for_scoped(agent, "filesystem", scoped_key)
+    except Exception as exc:
+        logger.warning("filesystem scopé indisponible pour '%s' : %s", agent, exc)
+
+    if not tools:
+        subs = [s["name"] for s in ctx.mcp.list_sub_agents("donna")]
+        return (
+            f"Sous-agent '{agent}' inconnu ou sans outils "
+            f"(disponibles : {', '.join(subs) or 'aucun'})."
+        )
+
+    description = ""
+    for sub in ctx.mcp.list_sub_agents("donna"):
+        if sub["name"] == agent:
+            description = sub["description"]
+            break
+
+    sub_turns = [
+        {
+            "role": "system",
+            "content": (
+                f"Tu es le sous-agent '{agent}' de Donna, l'assistant principal. "
+                f"Ta spécialité : {description or 'travail documentaire'}. "
+                "Accomplis la tâche confiée ci-dessous avec tes outils. "
+                "Dès que c'est fait, réponds par un résumé BREF et factuel "
+                "de ton travail : fichier créé/édité (nom exact), données "
+                "extraits, résultat clé. Pas d'étapes intermédiaires."
+            ),
+        },
+        {"role": "user", "content": task},
+    ]
+    force_ollama = ctx.force_ollama
+
+    for _ in range(SUB_AGENT_MAX_TOOL_ROUNDS):
+        if ctx.usage.input_tokens >= MAX_INPUT_TOKENS_PER_REQUEST:
+            return "Budget tokens du sous-agent dépassé avant la fin du travail."
+        ctx.usage.add_request(sub_turns, tools)
+        result = await ctx.ollama.chat_with_tools(
+            sub_turns, tools=tools, force_ollama=force_ollama
+        )
+        ctx.usage.add_response(result.get("content"))
+        if result.pop("fell_back_to_ollama", False):
+            force_ollama = True
+            ctx.force_ollama = True
+        tool_calls = result["tool_calls"]
+        if not tool_calls:
+            return result["content"] or "Le sous-agent n'a rien renvoyé."
+
+        ctx.usage.tool_rounds += 1
+        sub_turns.append(
+            {"role": "assistant", "content": result["content"] or "", "tool_calls": tool_calls}
+        )
+        for call in tool_calls:
+            tool_result = await _execute_tool_call(ctx, call["name"], call["arguments"])
+            sub_turns.append({"role": "tool", "name": call["name"], "content": tool_result})
+
+    return "Le sous-agent a atteint sa limite de rounds sans réponse finale."
+
+
 _HANDLERS = {
     "remember_fact": _remember_fact,
     "update_fact": _update_fact,
@@ -972,6 +1156,8 @@ _HANDLERS = {
     "confirm_action": _confirm_action,
     "cancel_action": _cancel_action,
     "save_generated_document": _save_generated_document,
+    "web_search": _web_search,
+    "delegate_to_subagent": _delegate_to_subagent,
 }
 
 
@@ -994,7 +1180,7 @@ async def _execute_tool_call_raw(ctx: ToolContext, name: str, arguments: dict) -
         if ctx.mcp is None:
             return "Outils de documents (word/excel/pdf) indisponibles côté serveur."
         try:
-            return await ctx.mcp.call_tool(name, arguments, tenant_id=ctx.tenant_id)
+            return await ctx.mcp.call_tool_named(name, arguments, tenant_id=ctx.tenant_id)
         except Exception as exc:
             logger.warning("appel MCP '%s' échoué : %s", name, exc)
             return "Échec de l'exécution de l'outil."
@@ -1010,9 +1196,20 @@ async def _execute_tool_call_raw(ctx: ToolContext, name: str, arguments: dict) -
 
 
 def _effective_tools(ctx: ToolContext) -> list[dict]:
+    """Les tools exposés de tous les concepts LLM/chat. Il n'y a plus de
+    tools MCP dans le contexte de Donna : donna ne voit QUE ses tools
+    natifs (+ web_search et delegate_to_subagent). Les tools documentaires
+    (mcp_*) vivent dans les sous-agents et ne remontent que via une
+    délégation. `ctx.mcp` n'est vérifié que pour déclarer web_search et
+    delegate_to_subagent disponibles — sans lui, ces tools existent en
+    code mais rendent une erreur explicite."""
     if ctx.mcp is None:
-        return TOOLS_SCHEMA
-    return TOOLS_SCHEMA + ctx.mcp.list_tools_schema()
+        return [
+            t
+            for t in TOOLS_SCHEMA
+            if t["function"]["name"] not in ("delegate_to_subagent", "web_search")
+        ]
+    return TOOLS_SCHEMA
 
 
 _EMPTY_REPLY_NUDGE = {
@@ -1067,7 +1264,9 @@ async def run_chat_with_tools(
     # Une fois basculé sur Ollama (cloud indisponible), on y reste pour le
     # reste de CE tour de conversation — pas de shared state sur le router
     # (concurrence entre requêtes), juste une variable locale à cet appel.
-    force_ollama = False
+    # Synchronisé sur ctx pour que les délégations sous-agent voient le même
+    # état de fallback sans repartir sur le cloud (voir _delegate_to_subagent).
+    ctx.force_ollama = False
 
     for _ in range(MAX_TOOL_ROUNDS):
         # Budget tokens cumulé : au-delà, on force la réponse finale SANS
@@ -1083,18 +1282,18 @@ async def run_chat_with_tools(
             break
         ctx.usage.add_request(turns, tools)
         result = await ollama.chat_with_tools(
-            turns, tools=tools, images_b64=images_b64, force_ollama=force_ollama
+            turns, tools=tools, images_b64=images_b64, force_ollama=ctx.force_ollama
         )
         ctx.usage.add_response(result.get("content"))
         if result.pop("fell_back_to_ollama", False):
-            force_ollama = True
+            ctx.force_ollama = True
             ctx.usage.provider_fallbacks += 1
         tool_calls = result["tool_calls"]
         if not tool_calls:
             content = result["content"] or ""
             if content:
                 return content
-            return await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
+            return await _recover_empty_reply(ollama, turns, images_b64, ctx.force_ollama, ctx.usage)
 
         ctx.usage.tool_rounds += 1
         turns.append({"role": "assistant", "content": result["content"] or "", "tool_calls": tool_calls})
@@ -1104,14 +1303,14 @@ async def run_chat_with_tools(
 
     ctx.usage.add_request(turns, None)
     result = await ollama.chat_with_tools(
-        turns, tools=None, images_b64=images_b64, force_ollama=force_ollama
+        turns, tools=None, images_b64=images_b64, force_ollama=ctx.force_ollama
     )
     ctx.usage.add_response(result.get("content"))
     if result.pop("fell_back_to_ollama", False):
-        force_ollama = True
+        ctx.force_ollama = True
         ctx.usage.provider_fallbacks += 1
     content = result["content"] or ""
-    return content or await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
+    return content or await _recover_empty_reply(ollama, turns, images_b64, ctx.force_ollama, ctx.usage)
 
 
 async def run_chat_stream_with_tools(
@@ -1133,7 +1332,7 @@ async def run_chat_stream_with_tools(
     tools = _effective_tools(ctx)
     # Cf. run_chat_with_tools : une fois basculé sur Ollama dans ce tour, on y
     # reste plutôt que retenter le cloud (et son rate limit) à chaque round.
-    force_ollama = False
+    ctx.force_ollama = False
 
     for _ in range(MAX_TOOL_ROUNDS):
         # Même budget que la version non-streaming (voir run_chat_with_tools).
@@ -1149,7 +1348,7 @@ async def run_chat_stream_with_tools(
 
         ctx.usage.add_request(turns, tools)
         async for event in ollama.chat_stream_with_tools(
-            turns, tools=tools, images_b64=images_b64, force_ollama=force_ollama
+            turns, tools=tools, images_b64=images_b64, force_ollama=ctx.force_ollama
         ):
             if event["type"] == "delta":
                 content_parts.append(event["content"])
@@ -1157,14 +1356,14 @@ async def run_chat_stream_with_tools(
             elif event["type"] == "tool_calls":
                 tool_calls = event["calls"]
             elif event["type"] == "provider_fallback":
-                force_ollama = True
+                ctx.force_ollama = True
                 ctx.usage.provider_fallbacks += 1
                 yield event
         ctx.usage.add_response("".join(content_parts))
 
         if not tool_calls:
             if not content_parts:
-                recovered = await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
+                recovered = await _recover_empty_reply(ollama, turns, images_b64, ctx.force_ollama, ctx.usage)
                 yield {"type": "delta", "content": recovered}
             return
 
@@ -1185,17 +1384,17 @@ async def run_chat_stream_with_tools(
     final_parts: list[str] = []
     ctx.usage.add_request(turns, None)
     async for event in ollama.chat_stream_with_tools(
-        turns, tools=None, images_b64=images_b64, force_ollama=force_ollama
+        turns, tools=None, images_b64=images_b64, force_ollama=ctx.force_ollama
     ):
         if event["type"] == "delta":
             final_parts.append(event["content"])
             yield event
         elif event["type"] == "provider_fallback":
-            force_ollama = True
+            ctx.force_ollama = True
             ctx.usage.provider_fallbacks += 1
             yield event
     ctx.usage.add_response("".join(final_parts))
 
     if not final_parts:
-        recovered = await _recover_empty_reply(ollama, turns, images_b64, force_ollama, ctx.usage)
+        recovered = await _recover_empty_reply(ollama, turns, images_b64, ctx.force_ollama, ctx.usage)
         yield {"type": "delta", "content": recovered}

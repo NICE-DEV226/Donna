@@ -22,17 +22,28 @@ export interface AttachmentOut {
   readonly created_at: string;
 }
 
+export interface ContextStatusOut {
+  readonly total_messages: number;
+  readonly covered_messages: number;
+  readonly recent_messages: number;
+  readonly summary_chars: number;
+  readonly context_budget_used_pct: number;
+  readonly compacted: boolean;
+}
+
 export interface ChatResponse {
   readonly conversation_id: string;
   readonly reply: string;
   readonly sources: readonly SourceOut[];
   readonly memory_notes: readonly string[];
   readonly attachments: readonly AttachmentOut[];
+  readonly context?: ContextStatusOut;
 }
 
 export interface ConversationOut {
   readonly id: string;
   readonly title: string;
+  readonly context?: ContextStatusOut;
 }
 
 export interface MessageOut {
@@ -56,6 +67,7 @@ export type ChatStreamEvent =
       readonly sources: readonly SourceOut[];
       readonly memoryNotes: readonly string[];
       readonly attachments: readonly AttachmentOut[];
+      readonly context?: ContextStatusOut;
     }
   | { readonly type: 'error'; readonly message: string }
   | {
@@ -77,6 +89,13 @@ export class ChatService {
   getMessages(conversationId: string): Promise<MessageOut[]> {
     return firstValueFrom(
       this.http.get<MessageOut[]>(`${CHAT_BASE}/${conversationId}/messages`),
+    );
+  }
+
+  /** État de la compaction du contexte d'une conversation — GET /app/chat/{id}/context. */
+  getContextStatus(conversationId: string): Promise<ContextStatusOut> {
+    return firstValueFrom(
+      this.http.get<ContextStatusOut>(`${CHAT_BASE}/${conversationId}/context`),
     );
   }
 
@@ -203,6 +222,7 @@ export class ChatService {
           sources: (data['sources'] as SourceOut[] | undefined) ?? [],
           memoryNotes: (data['memory_notes'] as string[] | undefined) ?? [],
           attachments: (data['attachments'] as AttachmentOut[] | undefined) ?? [],
+          context: data['context'] as ContextStatusOut | undefined,
         };
       default:
         if (typeof data['delta'] === 'string') return { type: 'delta', text: data['delta'] };

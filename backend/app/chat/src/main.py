@@ -6,6 +6,17 @@ from xcore.sdk import AutoDispatchMixin, TrustedBase, get_logger
 from .models import Base
 from .ollama_client import OllamaClient
 from .providers.anthropic_provider import AnthropicProvider
+from .providers.middleware import (
+    AuditMiddleware,
+    BudgetMiddleware,
+    CacheMiddleware,
+    CircuitBreakerProvider,
+    LLMPipeline,
+    LoggingMiddleware,
+    RetryMiddleware,
+    TraceMiddleware,
+    UsageMiddleware,
+)
 from .providers.openai_compat_provider import OpenAICompatProvider
 from .providers.router import ProviderRouter
 from .routes.chat_routes import chats_router
@@ -55,6 +66,22 @@ class Plugin(AutoDispatchMixin, TrustedBase):
             self._ollama, default_provider, default_name=active_name, vision_provider=vision_provider
         )
 
+        # Pipeline middleware LLM — configuré dans plugin.yaml sous llm:middleware:.
+        # Les middlewares s'exécutent en oignon autour du router (voir
+        # providers/middleware/base.py). Le circuit breaker est appliqué PAR
+        # SLOT (cloud/vision) et non à l'échelle du pipeline : il faut être
+        # côté provider pour connaître la cause exacte d'un échec — et donc
+        # l'ennoblir en repli Ollama (CircuitOpenError hérite de
+        # ProviderUnavailableError).
+        middleware_cfg = cfg.get("llm", {}).get("middleware", {}) or {}
+        self._pipeline = self._build_pipeline(
+            self._provider_router,
+            middleware_cfg,
+            system_prompt=system_prompt,
+            default_provider=default_provider,
+            vision_provider=vision_provider,
+        )
+
         # Fermé sur cfg/env/system_prompt — permet de reconstruire un
         # provider par son seul nom, à la demande (voir POST
         # /app/chat/provider dans chat_routes.py, pour changer le provider
@@ -72,7 +99,7 @@ class Plugin(AutoDispatchMixin, TrustedBase):
         self.app.include_router(
             chats_router(
                 self._db,
-                self._provider_router,
+                self._pipeline,
                 self._storage,
                 self._transcriber,
                 self._rag,
@@ -84,6 +111,15 @@ class Plugin(AutoDispatchMixin, TrustedBase):
             )
         )
 
+        # Endpoint d'observabilité : dernières spans LLM du pipeline (si le
+        # middleware tracing est monté). Sans auth stricte ici — lecture seule
+        # de métadonnées, le vrai usage est côté logs structurés.
+        if hasattr(self, "_trace"):
+            @self.app.get("/traces", summary="Dernières spans LLM du pipeline", tags=["observability"])
+            async def traces(limit: int = 50):
+                return {"spans": self._trace.spans(limit=limit)}
+
+        self._pipeline_default_name = active_name
         vision_name = "groq" if vision_provider else "ollama"
         logger.info("chat plugin prêt — génération=%s, vision=%s, embed=ollama", active_name, vision_name)
 
@@ -232,8 +268,116 @@ class Plugin(AutoDispatchMixin, TrustedBase):
         logger.warning("llm.vision.provider=%s inconnu — repli Ollama pour la vision.", provider_name)
         return None
 
+    def _build_pipeline(
+        self,
+        router: ProviderRouter,
+        mw_cfg: dict,
+        system_prompt: str | None,
+        default_provider=None,
+        vision_provider=None,
+    ) -> LLMPipeline:
+        """
+        Assemble le pipeline middleware LLM à partir de la config plugin.yaml
+        (section llm:middleware:). Les middlewares sont ajoutés dans l'ordre
+        résilience → observabilité — le premier ajouté est le plus externe.
+
+        Le circuit breaker est appliqué aux SLOTS (default/vision) AVANT le
+        router : pour qu'un court-circuit aboutisse au repli Ollama, l'erreur
+        doit être vue côté provider (CircuitOpenError est une sous-classe de
+        ProviderUnavailableError, ce que le router intercepte).
+        """
+        llm_cfg = self.ctx.config.get("llm", {}) or {}
+        ollama_cfg = self.ctx.config.get("ollama", {}) or {}
+        vision_cfg = llm_cfg.get("vision", {}) or {}
+        provider_models: dict[str, str] = {}
+        if getattr(self, "_ollama", None):
+            provider_models["ollama"] = ollama_cfg.get("model", "qwen2.5:3b")
+        for pname in ("anthropic", "openai", "grok", "groq", "openrouter", "gemini"):
+            pcfg = llm_cfg.get(pname, {}) or {}
+            if pcfg.get("model"):
+                provider_models[pname] = pcfg["model"]
+        if vision_cfg.get("provider") and vision_cfg.get("model"):
+            provider_models[f"{vision_cfg['provider']}#vision"] = vision_cfg["model"]
+
+        # ── Circuit breaker par slot ───────────────────────────────────────
+        cb_cfg = mw_cfg.get("circuit_breaker", {}) or {}
+        if cb_cfg.get("enabled", True):
+            failure_threshold = int(cb_cfg.get("failure_threshold", 5))
+            recovery_timeout = float(cb_cfg.get("recovery_timeout", 60))
+            wrapped_default = None
+            if default_provider is not None:
+                wrapped_default = CircuitBreakerProvider(
+                    default_provider,
+                    name="default",
+                    failure_threshold=failure_threshold,
+                    recovery_timeout=recovery_timeout,
+                )
+            wrapped_vision = None
+            if vision_provider is not None:
+                wrapped_vision = CircuitBreakerProvider(
+                    vision_provider,
+                    name="vision",
+                    failure_threshold=failure_threshold,
+                    recovery_timeout=recovery_timeout,
+                )
+            router.set_default(wrapped_default, router.default_name)
+            router._vision = wrapped_vision
+            logger.info(
+                "chat : circuit breaker actif (default:%s, vision:%s)",
+                bool(wrapped_default),
+                bool(wrapped_vision),
+            )
+
+        pipeline = LLMPipeline(router, provider_models=provider_models)
+
+        # ── Observabilité (la plus externe → elle voit tout en réponse) ────
+        audit_cfg = mw_cfg.get("audit", {}) or {}
+        if audit_cfg.get("enabled", True):
+            pipeline.add(
+                AuditMiddleware(
+                    verbose=bool(audit_cfg.get("verbose", False)),
+                    audit_file=audit_cfg.get("file") or "data/chat_audit.jsonl",
+                    block_on_injection=bool(audit_cfg.get("block_on_injection", False)),
+                )
+            )
+
+        if mw_cfg.get("tracing", {}).get("enabled", True):
+            self._trace = TraceMiddleware()
+            pipeline.add(self._trace)
+
+        if mw_cfg.get("logging", {}).get("enabled", True):
+            pipeline.add(LoggingMiddleware(level=str(mw_cfg.get("logging", {}).get("level", "info"))))
+
+        if mw_cfg.get("usage", {}).get("enabled", True):
+            pipeline.add(UsageMiddleware())
+
+        # ── Résilience (interne → touche la cible en dernier) ──────────────
+        budget_cfg = mw_cfg.get("budget", {}) or {}
+        if budget_cfg.get("enabled", True):
+            pipeline.add(BudgetMiddleware(max_tokens_per_call=int(budget_cfg.get("max_tokens", 8000))))
+
+        cache_cfg = mw_cfg.get("cache", {}) or {}
+        if cache_cfg.get("enabled", True):
+            pipeline.add(
+                CacheMiddleware(
+                    ttl_seconds=int(cache_cfg.get("ttl_seconds", 300)),
+                    max_entries=int(cache_cfg.get("max_entries", 50)),
+                )
+            )
+
+        retry_cfg = mw_cfg.get("retry", {}) or {}
+        if retry_cfg.get("enabled", True):
+            pipeline.add(
+                RetryMiddleware(
+                    max_attempts=int(retry_cfg.get("max_attempts", 2)),
+                    backoff_base=float(retry_cfg.get("backoff_base", 1.0)),
+                )
+            )
+
+        return pipeline
+
     async def on_unload(self) -> None:
-        await self._provider_router.aclose()
+        await self._pipeline.aclose()
 
     def get_router(self) -> APIRouter | None:
         return self.app

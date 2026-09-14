@@ -1,0 +1,17 @@
+# ── Outils / IDE ───────────────────────────────
+.vscode/*.log
+*.log
+
+# ── Dépôts imbriqués (gitlink) — ne jamais committer l'intérieur ──
+
+# ── Backend : secrets & runtime ─────────────────
+backend/.env
+backend/**/.venv/
+__pycache__/
+*.pyc
+
+# ── Frontend ────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+# Tooling IDE — logs locaux, jamais commités
+.vscode/*.log

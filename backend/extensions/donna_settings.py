@@ -68,6 +68,15 @@ MAX_INPUT_TOKENS_PER_REQUEST: int = _int("DONNA_MAX_INPUT_TOKENS_PER_REQUEST", 8
 # get_document_text pouvait injecter 50k+ tokens à lui seul, à chaque round).
 TOOL_RESULT_MAX_CHARS: int = _int("DONNA_TOOL_RESULT_MAX_CHARS", 6_000)
 
+# ── Boucle sous-agent (delegation) ──────────────────────────────────────────
+# Lorsque Donna délègue un travail documentaire à un sous-agent (redacteur,
+# analyste), celui-ci tourne sur une boucle LLM séparée, avec ses propres
+# outils MCP (filtrés via catalog, pas les miens).  Garde-fou dédié :
+# un sous-agent n'a pas besoin de 12 rounds (creation Word = 2-3 appels
+# max en général) — un budget plus court protège contre les boucles
+# aberrantes en cas de consigne ambiguë.
+SUB_AGENT_MAX_TOOL_ROUNDS: int = _int("DONNA_SUB_AGENT_MAX_TOOL_ROUNDS", 8)
+
 # ── RAG ─────────────────────────────────────────────────────────────────────
 RAG_TOP_K: int = _int("DONNA_RAG_TOP_K", 5)
 # Gating : pas de recherche (ni embedding, ni rerank, ni contexte) pour les

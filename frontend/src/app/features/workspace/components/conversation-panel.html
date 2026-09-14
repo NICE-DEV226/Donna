@@ -305,6 +305,36 @@
 
   <div class="shrink-0 px-lg pb-lg">
     <div class="mx-auto max-w-hero">
+      @if (store.contextStatus(); as status) {
+        <!--
+          Statut de compaction du contexte : barre de budget (résumé + messages
+          récents) + badge lorsqu'une partie du fil a été condensée en résumé
+          (voir memory.py::get_context_status). Tout en retrait : une jauge,
+          pas une autre ressource pour attirer l'attention.
+        -->
+        <div
+          class="mb-sm flex items-center gap-md rounded-lg py-sm"
+          [attr.title]="t('workspace.context.budget')"
+          role="group"
+          aria-label="context status"
+        >
+          <div class="h-1 min-w-0 grow overflow-hidden rounded-full bg-line">
+            <div
+              class="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+              [style.width.%]="status.context_budget_used_pct"
+            ></div>
+          </div>
+          <span class="shrink-0 tabular-nums text-body-sm text-ink-muted">
+            {{ status.context_budget_used_pct }}%
+          </span>
+          @if (status.compacted) {
+            <span class="inline-flex shrink-0 items-center gap-xs text-body-sm text-ink-subtle">
+              <ui-icon name="sparkles" [size]="14" />
+              {{ t('workspace.context.compacted') }}
+            </span>
+          }
+        </div>
+      }
       <workspace-composer [disabled]="store.isThinking()" (send)="send($event)" />
     </div>
   </div>

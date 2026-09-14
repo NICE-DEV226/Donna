@@ -217,57 +217,6 @@ wheels = [
 ]
 
 [[package]]
-name = "backend"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "aiomqtt" },
-    { name = "aiosmtplib" },
-    { name = "anthropic" },
-    { name = "cryptography" },
-    { name = "faster-whisper" },
-    { name = "mcp" },
-    { name = "openai" },
-    { name = "openpyxl" },
-    { name = "passlib", extra = ["argon2"] },
-    { name = "pydantic", extra = ["email"] },
-    { name = "pyotp" },
-    { name = "pypdf" },
-    { name = "python-docx" },
-    { name = "python-jose" },
-    { name = "python-pptx" },
-    { name = "sqlite-vec" },
-    { name = "transformers" },
-    { name = "xcdk" },
-    { name = "xcorecli" },
-    { name = "xcoreruntime" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiomqtt", specifier = ">=2.0" },
-    { name = "aiosmtplib" },
-    { name = "anthropic", specifier = ">=0.40.0" },
-    { name = "cryptography", specifier = ">=50.0.1" },
-    { name = "faster-whisper" },
-    { name = "mcp", specifier = ">=1.0" },
-    { name = "openai", specifier = ">=1.0" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "passlib", extras = ["argon2"], specifier = ">=1.7.4" },
-    { name = "pydantic", extras = ["email"], specifier = ">=2.13.4" },
-    { name = "pyotp", specifier = ">=2.10.0" },
-    { name = "pypdf", specifier = ">=6.0" },
-    { name = "python-docx", specifier = ">=1.2.0" },
-    { name = "python-jose", specifier = ">=3.5.0" },
-    { name = "python-pptx", specifier = ">=1.0.2" },
-    { name = "sqlite-vec" },
-    { name = "transformers", specifier = ">=5.0" },
-    { name = "xcdk", specifier = ">=0.1.0" },
-    { name = "xcorecli", specifier = ">=2.2.0" },
-    { name = "xcoreruntime", specifier = ">=2.5.2" },
-]
-
-[[package]]
 name = "billiard"
 version = "4.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -610,6 +559,57 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e0/4d/f332313098c1de1b2d2ff91cf2674415cc7cddab2ca1b01ae29774bd5fdf/docstring_parser-0.18.0.tar.gz", hash = "sha256:292510982205c12b1248696f44959db3cdd1740237a968ea1e2e7a900eeb2015", size = 29341, upload-time = "2026-04-14T04:09:19.867Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/5f/ed01f9a3cdffbd5a008556fc7b2a08ddb1cc6ace7effa7340604b1d16699/docstring_parser-0.18.0-py3-none-any.whl", hash = "sha256:b3fcbed555c47d8479be0796ef7e19c2670d428d72e96da63f3a40122860374b", size = 22484, upload-time = "2026-04-14T04:09:18.638Z" },
+]
+
+[[package]]
+name = "donna"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "aiomqtt" },
+    { name = "aiosmtplib" },
+    { name = "anthropic" },
+    { name = "cryptography" },
+    { name = "faster-whisper" },
+    { name = "mcp" },
+    { name = "openai" },
+    { name = "openpyxl" },
+    { name = "passlib", extra = ["argon2"] },
+    { name = "pydantic", extra = ["email"] },
+    { name = "pyotp" },
+    { name = "pypdf" },
+    { name = "python-docx" },
+    { name = "python-jose" },
+    { name = "python-pptx" },
+    { name = "sqlite-vec" },
+    { name = "transformers" },
+    { name = "xcdk" },
+    { name = "xcorecli" },
+    { name = "xcoreruntime" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiomqtt", specifier = ">=2.0" },
+    { name = "aiosmtplib" },
+    { name = "anthropic", specifier = ">=0.40.0" },
+    { name = "cryptography", specifier = ">=50.0.1" },
+    { name = "faster-whisper" },
+    { name = "mcp", specifier = ">=1.0" },
+    { name = "openai", specifier = ">=1.0" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "passlib", extras = ["argon2"], specifier = ">=1.7.4" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.13.4" },
+    { name = "pyotp", specifier = ">=2.10.0" },
+    { name = "pypdf", specifier = ">=6.0" },
+    { name = "python-docx", specifier = ">=1.2.0" },
+    { name = "python-jose", specifier = ">=3.5.0" },
+    { name = "python-pptx", specifier = ">=1.0.2" },
+    { name = "sqlite-vec" },
+    { name = "transformers", specifier = ">=5.0" },
+    { name = "xcdk", specifier = ">=0.1.0" },
+    { name = "xcorecli", specifier = ">=2.2.0" },
+    { name = "xcoreruntime", specifier = ">=2.5.2" },
 ]
 
 [[package]]
