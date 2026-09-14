@@ -328,6 +328,32 @@ TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "web_search",
+            "description": (
+                "Recherche sur le web via DuckDuckGo. Renvoie des résultats "
+                "(titre, lien, extrait) pour trouver des informations en "
+                "ligne, vérifier un fait ou compléter une réponse avec des "
+                "sources extérieures."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "La requête de recherche, précise et en français.",
+                    },
+                    "max_results": {
+                        "type": ["integer", "null"],
+                        "description": "Nombre max de résultats (défaut : 10).",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "delegate_to_subagent",
             "description": (
                 "Délègue un travail documentaire à un sous-agent spécialisé "
@@ -1005,6 +1031,25 @@ async def _save_generated_document(ctx: ToolContext, arguments: dict) -> str:
     return result
 
 
+async def _web_search(ctx: ToolContext, arguments: dict) -> str:
+    """Recherche web DuckDuckGo via le pont MCP (`duckduckgo` -> tool
+    natif `search`). Le pont est la seule source : pas de clé API à gérer
+    ici, et le serveur (uvx duckduckgo-mcp-server) est déclaré en config
+    comme les autres (pdf/excel/word)."""
+    if ctx.mcp is None:
+        return "Recherche web indisponible (ext.mcp_bridge non connecté)."
+    try:
+        content = await ctx.mcp.call_tool("duckduckgo", "search", arguments)
+        return "\n".join(
+            part.text
+            for part in content
+            if getattr(part, "text", None)
+        ) or "Aucun résultat."
+    except Exception as exc:
+        logger.warning("web_search échoué : %s", exc)
+        return "La recherche web a échoué, réessaie plus tard."
+
+
 async def _delegate_to_subagent(ctx: ToolContext, arguments: dict) -> str:
     """Délègue une tâche documentaire à un sous-agent : sa propre boucle
     LLM, SCOPÉE à ses propres outils MCP (catalog.mcp_tools_for_agent),
@@ -1111,6 +1156,7 @@ _HANDLERS = {
     "confirm_action": _confirm_action,
     "cancel_action": _cancel_action,
     "save_generated_document": _save_generated_document,
+    "web_search": _web_search,
     "delegate_to_subagent": _delegate_to_subagent,
 }
 
@@ -1152,12 +1198,17 @@ async def _execute_tool_call_raw(ctx: ToolContext, name: str, arguments: dict) -
 def _effective_tools(ctx: ToolContext) -> list[dict]:
     """Les tools exposés de tous les concepts LLM/chat. Il n'y a plus de
     tools MCP dans le contexte de Donna : donna ne voit QUE ses tools
-    natifs (+ delegate_to_subagent). Les tools documentaires (mcp_*)
-    vivent dans les sous-agents et ne remontent que via une délégation.
-    `ctx.mcp` n'est vérifié que pour déclarer delegate_to_subagent
-    disponible — sans lui, le tool existe mais rend une erreur explicite."""
+    natifs (+ web_search et delegate_to_subagent). Les tools documentaires
+    (mcp_*) vivent dans les sous-agents et ne remontent que via une
+    délégation. `ctx.mcp` n'est vérifié que pour déclarer web_search et
+    delegate_to_subagent disponibles — sans lui, ces tools existent en
+    code mais rendent une erreur explicite."""
     if ctx.mcp is None:
-        return [t for t in TOOLS_SCHEMA if t["function"]["name"] != "delegate_to_subagent"]
+        return [
+            t
+            for t in TOOLS_SCHEMA
+            if t["function"]["name"] not in ("delegate_to_subagent", "web_search")
+        ]
     return TOOLS_SCHEMA
 
 

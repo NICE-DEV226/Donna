@@ -162,6 +162,9 @@ services:
           word:
             command: uvx
             args: ["--from", "office-word-mcp-server", "word_mcp_server"]
+          duckduckgo:
+            command: uvx
+            args: ["duckduckgo-mcp-server"]
         dynamic_servers:
           filesystem:
             command: uvx

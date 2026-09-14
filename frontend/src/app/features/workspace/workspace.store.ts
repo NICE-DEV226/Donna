@@ -107,6 +107,7 @@ const SEED_CONNECTIONS: readonly Connection[] = [
   { key: 'calendar', icon: 'calendar-days', connected: true },
   { key: 'gmail', icon: 'mail', connected: true },
   { key: 'slack', icon: 'message-square', connected: false },
+  { key: 'web_search', icon: 'search', connected: true },
 ];
 
 /**
