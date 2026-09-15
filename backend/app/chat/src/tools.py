@@ -385,6 +385,267 @@ TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_status",
+            "description": (
+                "État de l'identité officielle Donna WhatsApp : appairage, "
+                "connexion, transport, QR requis ou non."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "device": {
+                        "type": "string",
+                        "description": "Nom de l'appareil (défaut : official).",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_chats",
+            "description": (
+                "Liste les conversations WhatsApp : contact, non-lus, dernier "
+                "message, horodatage."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "description": "Filtre optionnel sur le nom du contact.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Nombre max de conversations (défaut 20).",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_context",
+            "description": (
+                "Fenêtre de messages d'une conversation WhatsApp (chat = "
+                "téléphone ou jid WhatsApp)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "chat": {
+                        "type": "string",
+                        "description": "Identifiant du chat (numéro ou @s.whatsapp.net).",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Nombre de messages (défaut 20).",
+                    },
+                },
+                "required": ["chat"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_search",
+            "description": (
+                "Recherche textuelle dans les messages ou les contacts WhatsApp."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Texte recherché.",
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["contacts", "messages"],
+                        "description": "messages (défaut) | contacts.",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_send",
+            "description": (
+                "Envoie un message texte. mode=draft (défaut) crée un ticket à "
+                "approuver ; mode/auto part directement si autorisé (anti-spam)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "recipient": {
+                        "type": "string",
+                        "description": "Téléphone ou jid du destinataire.",
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "Corps du message (max 1000 caractères).",
+                    },
+                    "reply_to": {
+                        "type": "string",
+                        "description": "ID du message auquel répondre (optionnel).",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["draft", "auto"],
+                        "description": "draft (défaut) | auto",
+                    },
+                    "question": {
+                        "type": "boolean",
+                        "description": "True si le message attend une réponse.",
+                    },
+                },
+                "required": ["recipient", "text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_media",
+            "description": (
+                "Envoie une pièce jointe (image, document...) depuis les "
+                "racines autorisées."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "recipient": {
+                        "type": "string",
+                        "description": "Téléphone ou jid du destinataire.",
+                    },
+                    "file_ref": {
+                        "type": "string",
+                        "description": "Chemin du fichier dans les racines autorisées.",
+                    },
+                    "caption": {
+                        "type": "string",
+                        "description": "Légende (optionnelle).",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["draft", "auto"],
+                        "description": "draft (défaut) | auto",
+                    },
+                },
+                "required": ["recipient", "file_ref"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_voice",
+            "description": (
+                "Envoie une note vocale (.opus/.ogg, Opus mono ~48 kHz) depuis "
+                "les racines autorisées."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "recipient": {
+                        "type": "string",
+                        "description": "Téléphone ou jid du destinataire.",
+                    },
+                    "file_ref": {
+                        "type": "string",
+                        "description": "Chemin du fichier .opus/.ogg.",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["draft", "auto"],
+                        "description": "draft (défaut) | auto",
+                    },
+                },
+                "required": ["recipient", "file_ref"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_react",
+            "description": (
+                "Réagit à un message (émoticône de la liste autorisée : "
+                "👌 ✅ 👍 ❤️ 😂 🤔 😮 🙏 🎉 📎)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "chat": {
+                        "type": "string",
+                        "description": "Identifiant du chat.",
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "ID du message auquel réagir.",
+                    },
+                    "emoji": {
+                        "type": "string",
+                        "enum": ["👌", "✅", "👍", "❤️", "😂", "🤔", "😮", "🙏", "🎉", "📎"],
+                        "description": "L'émoticône de réaction.",
+                    },
+                },
+                "required": ["chat", "message", "emoji"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_read",
+            "description": (
+                "Marque une conversation WhatsApp comme lue (ack)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "chat": {
+                        "type": "string",
+                        "description": "Identifiant du chat.",
+                    },
+                },
+                "required": ["chat"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wa_admin_approve",
+            "description": (
+                "Approuve ou rejette un ticket d'envoi créé par wa_send / "
+                "wa_media / wa_voice (mode draft)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticket": {
+                        "type": "string",
+                        "description": "ID du ticket (tk_...).",
+                    },
+                    "approve": {
+                        "type": "boolean",
+                        "description": "True = approuver, false = rejeter.",
+                    },
+                },
+                "required": ["ticket", "approve"],
+            },
+        },
+    },
 ]
 
 
@@ -1050,6 +1311,57 @@ async def _web_search(ctx: ToolContext, arguments: dict) -> str:
         return "La recherche web a échoué, réessaie plus tard."
 
 
+def _make_wa_handler(native_name: str):
+    """Fabrique le handler `wa_*` → pont stdio `donna_whatsapp`.
+
+    Le pont est la seule source : le serveur WhatsApp réel (binaire Go
+    `donata`, transport memory en dev / whatsmeow en prod) est déclaré en
+    **integration.yaml** dans `extensions.mcp_bridge.config.servers`
+    (`donna_whatsapp:`), comme duckduckgo/pdf/excel/word. Aucune clé API à
+    gérer ici — `ctx.mcp.call_tool` route vers le serveur stdio par son ID
+    (`donna_whatsapp`) et le nom natif (`wa_chats`, `wa_send`, ...).
+
+    Défauts : mode=draft (une approbation humaine est requise avant envoi,
+    anti-spam anti-abus) ; wa_send/wa_media/wa_voice/wa_react partent en
+    **?? d'abord** si le contexte est en draft ; passez mode=auto en config
+    uniquement pour des campagnes explicites à fort pré-approbation.
+    """
+
+    async def _handler(ctx: ToolContext, arguments: dict) -> str:
+        if ctx.mcp is None:
+            return (
+                f"{native_name} indisponible (ext.mcp_bridge non connecté)."
+            )
+        try:
+            content = await ctx.mcp.call_tool(
+                "donna_whatsapp", native_name, arguments
+            )
+            return "\n".join(
+                part.text
+                for part in content
+                if getattr(part, "text", None)
+            ) or "Aucun résultat."
+        except Exception as exc:
+            logger.warning("%s échoué : %s", native_name, exc)
+            return (
+                f"{native_name} a échoué, réessaie plus tard."
+            )
+
+    return _handler
+
+
+_wa_status = _make_wa_handler("wa_status")
+_wa_chats = _make_wa_handler("wa_chats")
+_wa_context = _make_wa_handler("wa_context")
+_wa_search = _make_wa_handler("wa_search")
+_wa_send = _make_wa_handler("wa_send")
+_wa_media = _make_wa_handler("wa_media")
+_wa_voice = _make_wa_handler("wa_voice")
+_wa_react = _make_wa_handler("wa_react")
+_wa_read = _make_wa_handler("wa_read")
+_wa_admin_approve = _make_wa_handler("wa_admin_approve")
+
+
 async def _delegate_to_subagent(ctx: ToolContext, arguments: dict) -> str:
     """Délègue une tâche documentaire à un sous-agent : sa propre boucle
     LLM, SCOPÉE à ses propres outils MCP (catalog.mcp_tools_for_agent),
@@ -1158,6 +1470,16 @@ _HANDLERS = {
     "save_generated_document": _save_generated_document,
     "web_search": _web_search,
     "delegate_to_subagent": _delegate_to_subagent,
+    "wa_status": _wa_status,
+    "wa_chats": _wa_chats,
+    "wa_context": _wa_context,
+    "wa_search": _wa_search,
+    "wa_send": _wa_send,
+    "wa_media": _wa_media,
+    "wa_voice": _wa_voice,
+    "wa_react": _wa_react,
+    "wa_read": _wa_read,
+    "wa_admin_approve": _wa_admin_approve,
 }
 
 

@@ -51,12 +51,10 @@ services:
     backend: memory
     ttl: 300
     max_size: 1000
-
   scheduler:
     enabled: false
     backend: memory
     timezone: UTC
-
   xworker:
     enabled: true
     name: donna
@@ -72,7 +70,6 @@ services:
     modules:
       - app.rag.src.tasks
       - app.chat.src.tasks
-
   extensions:
     rag:
       module: extensions.rag.service:RagService
@@ -165,6 +162,16 @@ services:
           duckduckgo:
             command: uvx
             args: ["duckduckgo-mcp-server"]
+          donna_whatsapp:
+            command: /home/eliezer/devs/donna/backend/data/mcp_whatsapp/donata
+            args: ["serve"]
+            env:
+              DONATA_DATA_DIR: data/donna_whatsapp
+              DONATA_TRANSPORT: memory
+              DONATA_MEDIA_ROOT: data/donna_whatsapp/media
+              DONATA_WEBHOOK_URL: ""
+              DONATA_WEBHOOK_TOKEN: ""
+            cwd: /home/eliezer/devs/donna/backend
         dynamic_servers:
           filesystem:
             command: uvx
